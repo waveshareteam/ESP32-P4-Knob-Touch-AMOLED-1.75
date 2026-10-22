@@ -8,7 +8,8 @@ dependencies:
     public: true
     version: "*"
     pre_release: true
-  idf: ">=5.5"
+  # This ESP32-P4 BSP uses LCD DPI APIs introduced in ESP-IDF 6.
+  idf: ">=6.0"
   lvgl/lvgl: ">=8,<10"
   usb:
     version: "^1.0.0"
