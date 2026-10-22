@@ -36,6 +36,12 @@
           ]
         }
       ]
+    },
+    "ci_routing": {
+      "esp_idf_shared_patterns": [
+        "examples/esp-idf/16_a2dp_sink/components/esp32_p4_knob_touch_amoled_1_75/**",
+        "examples/esp-idf/16_a2dp_sink/components/esp_lcd_co5300/**"
+      ]
     }
   }
 }
