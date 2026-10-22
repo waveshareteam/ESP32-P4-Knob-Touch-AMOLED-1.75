@@ -1,0 +1,44 @@
+menu "Limit switch test"
+
+    choice LIMIT_SWITCHES_TEST_MODE
+        prompt "Diagnostic mode"
+        default LIMIT_SWITCHES_MODE_POLLING
+        help
+            Add GPIO functionality one stage at a time. Polling and PCNT modes
+            show the current levels and trigger counts on the display.
+
+        config LIMIT_SWITCHES_MODE_INPUT_ONLY
+            bool "Input-only: configure pins without reading them"
+
+        config LIMIT_SWITCHES_MODE_POLLING
+            bool "Polling: read both pins every 10 ms"
+
+        config LIMIT_SWITCHES_MODE_PCNT
+            bool "PCNT: hardware falling-edge counting"
+    endchoice
+
+    choice LIMIT_SWITCHES_BIAS_MODE
+        prompt "GPIO20/GPIO21 internal bias"
+        default LIMIT_SWITCHES_BIAS_PULLUP
+        help
+            Select only when hardware inspection requires an internal pull resistor.
+
+        config LIMIT_SWITCHES_BIAS_NONE
+            bool "No internal pull-up or pull-down"
+
+        config LIMIT_SWITCHES_BIAS_PULLUP
+            bool "Enable internal pull-up"
+
+        config LIMIT_SWITCHES_BIAS_PULLDOWN
+            bool "Enable internal pull-down"
+    endchoice
+
+    config LIMIT_SWITCHES_DEBOUNCE_MS
+        int "Falling-edge debounce window in ms"
+        range 1 500
+        default 30
+        help
+            Falling edges are captured by the PCNT peripheral without a CPU
+            interrupt. Further raw edges from the same switch inside this
+            window are treated as contact bounce and ignored.
+endmenu

@@ -1,0 +1,6 @@
+menu "08 motor drive"
+    config MOTOR08_MAX_ON_MS
+        int "Maximum single vibration time in ms"
+        range 300 500
+        default 400
+endmenu

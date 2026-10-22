@@ -1,0 +1,16 @@
+menu "06 SD card test"
+    config SD06_PRIMARY_BUS_WIDTH
+        int "Primary SDMMC bus width"
+        range 1 4
+        default 4
+
+    config SD06_PRIMARY_FREQ_KHZ
+        int "Primary SDMMC maximum frequency in kHz"
+        range 400 40000
+        default 40000
+
+    config SD06_FALLBACK_FREQ_KHZ
+        int "Fallback SDMMC maximum frequency in kHz"
+        range 400 20000
+        default 20000
+endmenu

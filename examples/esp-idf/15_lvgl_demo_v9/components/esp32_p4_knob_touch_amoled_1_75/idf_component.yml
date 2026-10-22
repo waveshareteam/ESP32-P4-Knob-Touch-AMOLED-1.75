@@ -1,0 +1,20 @@
+dependencies:
+  esp_codec_dev:
+    version: ">=1.5.3,<2.0.0"
+    public: true
+  esp_lcd_co5300: "*"
+  waveshare/esp_lcd_touch_cst9217: "*"
+  # kodediy/esp_lcd_touch_cst820: "*"
+  espressif/esp_lvgl_adapter:
+    public: true
+    version: "*"
+    pre_release: true
+  idf: '>=5.3'
+  lvgl/lvgl: '>=8,<10'
+description: Board Support Package (BSP) for Waveshare ESP32-P4-Knob-Touch-AMOLED-1.75
+tags:
+- bsp
+targets:
+- esp32p4
+url: https://www.waveshare.com/esp32-p4-knob-touch-amoled-1.75.htm
+version: 1.0.0

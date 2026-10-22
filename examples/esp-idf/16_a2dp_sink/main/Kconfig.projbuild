@@ -1,0 +1,93 @@
+menu "A2DP Example Configuration"
+    config EXAMPLE_A2DP_SINK_SSP_ENABLED
+        bool "Secure Simple Pairing"
+        depends on BT_CLASSIC_ENABLED
+        default y
+        help
+            This enables the Secure Simple Pairing. If disable this option,
+            Bluedroid will only support Legacy Pairing
+
+    choice EXAMPLE_A2DP_SINK_OUTPUT
+        prompt "A2DP Sink Output"
+        default EXAMPLE_A2DP_SINK_OUTPUT_EXTERNAL_I2S
+        help
+            Select to use Internal DAC or external I2S driver
+
+        config EXAMPLE_A2DP_SINK_OUTPUT_INTERNAL_DAC
+            bool "Internal DAC"
+            help
+                Select this to use Internal DAC sink output,
+                note that DAC_DMA_AUTO_16BIT_ALIGN should be turned off
+                because the audio data are already 16-bit width
+
+        config EXAMPLE_A2DP_SINK_OUTPUT_EXTERNAL_I2S
+            bool "External I2S Codec"
+            help
+                Select this to use External I2S sink output
+
+    endchoice
+
+    config EXAMPLE_I2S_LRCK_PIN
+        int "I2S LRCK (WS) GPIO"
+        default 22
+        depends on EXAMPLE_A2DP_SINK_OUTPUT_EXTERNAL_I2S
+        help
+            GPIO number to use for I2S LRCK(WS) Driver.
+
+    config EXAMPLE_I2S_BCK_PIN
+        int "I2S BCK GPIO"
+        default 26
+        depends on EXAMPLE_A2DP_SINK_OUTPUT_EXTERNAL_I2S
+        help
+            GPIO number to use for I2S BCK Driver.
+
+    config EXAMPLE_I2S_DATA_PIN
+        int "I2S DATA GPIO"
+        default 25
+        depends on EXAMPLE_A2DP_SINK_OUTPUT_EXTERNAL_I2S
+        help
+            GPIO number to use for I2S Data Driver.
+
+    config EXAMPLE_LOCAL_DEVICE_NAME
+        string "Local Device Name"
+        default "ESP_SPEAKER"
+        help
+            Use this option to set local device name.
+
+    choice EXAMPLE_A2DP_AUDIO_OUTPUT_MIX_MODE
+        prompt "A2DP stereo output mix mode"
+        default EXAMPLE_A2DP_AUDIO_OUTPUT_LEFT_DUPLICATE
+        help
+            Select how decoded stereo PCM is sent to the single ES8389/PA
+            playback path. Left/right duplicate modes are useful to rule out
+            phase cancellation from L+R mono downmix.
+
+        config EXAMPLE_A2DP_AUDIO_OUTPUT_LEFT_DUPLICATE
+            bool "Left channel duplicated to both slots"
+
+        config EXAMPLE_A2DP_AUDIO_OUTPUT_RIGHT_DUPLICATE
+            bool "Right channel duplicated to both slots"
+
+        config EXAMPLE_A2DP_AUDIO_OUTPUT_MONO_AVERAGE
+            bool "L+R mono average duplicated to both slots"
+
+        config EXAMPLE_A2DP_AUDIO_OUTPUT_STEREO_PASSTHROUGH
+            bool "Stereo passthrough"
+
+    endchoice
+
+    config EXAMPLE_AVRCP_CT_COVER_ART_ENABLE
+        bool "Use AVRCP CT Cover Art Feature"
+        depends on BT_CLASSIC_ENABLED
+        default y
+        help
+            This enables the AVRCP Cover Art feature in example and try to get cover art image from peer device.
+
+    config EXAMPLE_A2DP_SINK_USE_EXTERNAL_CODEC
+        bool "Use External Codec Instead of Internal"
+        default n
+        select BT_A2DP_USE_EXTERNAL_CODEC
+        help
+            If enable, Bluedroid stack will not decode A2DP audio data, user need to decode it in application layer.
+
+endmenu
