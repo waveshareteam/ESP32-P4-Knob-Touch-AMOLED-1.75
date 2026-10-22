@@ -1,9 +1,5 @@
-# BSP: Waveshare ESP32-P4-Knob-Touch-AMOLED-1.75
+# ESP32-P4-Knob-Touch-AMOLED-1.75 BSP
 
-[![Component Registry](https://components.espressif.com/components/waveshare/esp32_p4_knob_touch_amoled_1_75/badge.svg)](https://components.espressif.com/components/waveshare/esp32_p4_knob_touch_amoled_1_75)
+[English](README.md) | [简体中文](README_ZH.md)
 
-The ESP32-P4-Knob-Touch-AMOLED-1.75 is a 1.75-inch 466×466 capacitive touch development board designed by waveshare electronics.
-
-|                            HW version                            | BSP Version |
-|:----------------------------------------------------------------:| :---------: |
-| [V1.0](http://www.waveshare.com/wiki/ESP32-S3-Touch-AMOLED-1.75) |      ^1     |
+This local board support package provides the display, touch, audio, storage, and power interfaces used by the LVGL Benchmark example. It targets `esp32p4` and is kept with the example so its component dependencies remain reproducible with the project.

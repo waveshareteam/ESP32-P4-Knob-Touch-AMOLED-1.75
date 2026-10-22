@@ -1,26 +1,27 @@
-# Peripheral Test 13: Speaker Output Reserved
+# 13 Speaker Output
 
-This project is an intentionally safe placeholder for a future speaker-output demo.
+[English](README.md) | [简体中文](README_ZH.md)
 
-## Current behavior
+## What It Does
 
-- Target: `esp32p4` with ESP-IDF v5.5.4.
-- Configures PA GPIO53 as an output and drives it low at startup.
-- Logs `RESERVED`, `NOT IMPLEMENTED`, and `UNTESTED`.
-- Does not open ES8389.
-- Does not generate a tone.
-- Reports no success status.
+This project is a reserved placeholder for a future speaker-output example. Its current implementation turns the power-amplifier control low, writes `RESERVED`, `NOT IMPLEMENTED`, and `UNTESTED` to the log, and then waits.
 
-## Future extension points
+## Hardware Required
 
-A later implementation can add ES8389 speaker output or Classic Bluetooth A2DP audio after real-board validation. That work must define the PA GPIO53 safety sequence, codec mute/volume order, sample format, stream start/stop behavior, and failure-path shutdown before enabling the PA.
+- ESP32-P4-Knob-Touch-AMOLED-1.75 development board
 
-Classic audio must not be mixed with BLE GAP scan output from `04_bluetooth`; A2DP should be a separate mode or demo.
+## How to Run
 
-## Build
+Run this command from this example directory using the ESP-IDF version listed in the repository README:
 
-```powershell
-idf.py -C examples/esp-idf/peripheral_tests/13_speaker_output -B <short-external-build-dir> set-target esp32p4 build
+```bash
+idf.py set-target esp32p4 build flash monitor
 ```
 
-Use ESP-IDF v5.5.4 and enable ccache before building. This build is not a hardware speaker validation.
+## Expected Result
+
+The serial monitor reports that the example is reserved and not implemented. It does not initialize the audio codec or generate speaker output.
+
+## Troubleshooting
+
+This project has no speaker test to troubleshoot because speaker output is not implemented.

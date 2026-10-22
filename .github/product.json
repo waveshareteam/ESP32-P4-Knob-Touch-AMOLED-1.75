@@ -8,5 +8,34 @@
     "versions": [
       "v6.1"
     ]
+  },
+  "overrides": {
+    "markdown_audit": {
+      "classification_rules": [
+        {
+          "category": "embedded_upstream",
+          "patterns": [
+            "examples/esp-idf/15_lvgl_demo_v9/components/esp_lcd_co5300/**",
+            "examples/esp-idf/16_a2dp_sink/components/esp_lcd_co5300/**",
+            "examples/esp-idf/17_brookesia/components/esp_lcd_ota7290b/**",
+            "examples/esp-idf/17_brookesia/components/esp_lcd_co5300/**",
+            "examples/esp-idf/17_brookesia/components/esp_lcd_ili9881c/**",
+            "examples/esp-idf/17_brookesia/components/esp_lcd_dsi/**",
+            "examples/esp-idf/17_brookesia/components/esp_lcd_jd9365/**",
+            "examples/esp-idf/17_brookesia/components/esp_lcd_hx8394/**",
+            "examples/esp-idf/17_brookesia/components/brookesia_core/**",
+            "examples/esp-idf/16_a2dp_sink/tutorial/Example_A2DP_Sink.md"
+          ]
+        },
+        {
+          "category": "first_party_wrapper",
+          "patterns": [
+            "examples/esp-idf/15_lvgl_demo_v9/components/esp32_p4_knob_touch_amoled_1_75/README*.md",
+            "examples/esp-idf/16_a2dp_sink/components/esp32_p4_knob_touch_amoled_1_75/README*.md",
+            "examples/esp-idf/17_brookesia/components/esp32_p4_platform/README*.md"
+          ]
+        }
+      ]
+    }
   }
 }

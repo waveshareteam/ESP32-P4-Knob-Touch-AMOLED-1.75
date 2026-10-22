@@ -1,30 +1,27 @@
-# 02_buttons
+# Buttons
 
-Read-only BOOT and PWR/GPIO2 input test.
+[English](README.md) | [简体中文](README_ZH.md)
 
-## Behavior
+## What It Does
 
-- GPIO35 (`BOARD_BOOT_GPIO`) and GPIO2 (`BOARD_PWR_GPIO`) are configured as independent inputs.
-- The demo uses the existing validated input behavior from the old `keys_power` and `pwr_gpio2` tests: internal pull-up enabled, active level LOW.
-- No output mode is enabled and neither pin is driven.
-- Startup logs the current level of both pins.
-- Debounced transitions print `PRESS` or `RELEASE` with a per-button press count.
+Tests the BOOT and PWR buttons as separate active-low inputs. The example only reads the inputs and reports debounced press and release events.
 
-## Pass Conditions
+## Hardware Required
 
-- Serial log shows both startup levels.
-- Pressing and releasing each physical button produces the matching `PRESS` and `RELEASE` lines.
-- Counts increment only on `PRESS` events.
+- ESP32-P4-Knob-Touch-AMOLED-1.75 development board
 
-## Failure Behavior
+## How to Run
 
-GPIO configuration failures are logged as `FAIL` and the demo stops before polling. Missing or noisy transitions remain visible in the serial log because raw startup level and debounced changes are printed.
+Run the following command from this example directory. Use the ESP-IDF version listed in the repository README.
 
-## Hardware Steps
+```bash
+idf.py set-target esp32p4 build flash monitor
+```
 
-1. Build for target `esp32p4`.
-2. Flash and open a serial monitor on real hardware.
-3. Press BOOT and PWR/GPIO2 separately.
-4. Confirm GPIO35 and GPIO2 report independent active-low transitions.
+## Expected Result
 
-No real-hardware validation was performed by this build-only task.
+Pressing and releasing either button produces independent `PRESS` and `RELEASE` messages in the serial monitor, with a press count for each button.
+
+## Troubleshooting
+
+The inputs use internal pull-ups; verify each button separately if its startup level or transitions are not reported.

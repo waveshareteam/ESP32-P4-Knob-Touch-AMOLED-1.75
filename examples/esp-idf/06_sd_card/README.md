@@ -1,25 +1,28 @@
-# 06_sd_card
+# SD Card
 
-SDMMC card mount and file round-trip test for ESP32-P4-Knob-Touch-AMOLED-1.75.
+[English](README.md) | [简体中文](README_ZH.md)
 
-Hardware used:
+## What It Does
 
-- SDMMC D0/D1/D2/D3: GPIO39/GPIO40/GPIO41/GPIO42
-- SDMMC CLK/CMD: GPIO43/GPIO44
-- SD1_VDD GPIO45: left external/unchanged by default because the polarity and board power strategy are not confirmed here
-- CO5300 466x466 display through the BSP component
+Mounts an SD card, writes a temporary file, reads it back for verification, deletes the file, and unmounts the card. The status is shown on an LVGL page and in the serial monitor.
 
-Behavior:
+## Hardware Required
 
-- Mounts the card through the BSP (`bsp_sdcard_mount()`), 4-bit at 40 MHz on SDMMC slot 0.
-- Mounts FATFS, prints card information, reports total/free space, writes a unique temporary file, reads it back, verifies the payload, deletes the file, and unmounts.
-- Updates an LVGL status page through a queue while SD I/O runs in a worker task.
+- ESP32-P4-Knob-Touch-AMOLED-1.75 development board
+- A compatible SD card
 
-Internal pull-ups are enabled only as an auxiliary bring-up aid. Reliable SDMMC operation depends on proper external pull-ups on the SD bus.
+## How to Run
 
-Expected result:
+Insert an SD card, then run the following command from this example directory. Use the ESP-IDF version listed in the repository README.
 
-- Serial log shows card information and a verified temporary file path.
-- Display shows `Passed` and `Verified` when the full round-trip and cleanup succeed.
+```bash
+idf.py set-target esp32p4 build flash monitor
+```
 
-Still requires hardware verification with representative SD cards before using the result as a production storage qualification.
+## Expected Result
+
+The example reports the card information and a successful write/read/delete round trip, then shows a passed status after unmounting the card.
+
+## Troubleshooting
+
+This example modifies a temporary file on the inserted card. Mount or verification failures are reported in the serial monitor and on the display.

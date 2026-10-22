@@ -1,25 +1,27 @@
-# 08_motor_drive
+# 08 Motor Drive
 
-Safety-limited DRV8837 haptic motor test with an LVGL press-and-hold button.
+[English](README.md) | [简体中文](README_ZH.md)
 
-Hardware used:
+## What It Does
 
-- DRV8837 IN1: GPIO22
-- DRV8837 IN2: GPIO23
-- Idle contract: IN1 low, IN2 low
-- Active contract: safe forward pulse only, IN1 high and IN2 low
+This example drives the board motor or haptic output with a press-and-hold LVGL button. It uses a guarded forward pulse and returns both control lines to the idle state on release, timeout, or an error.
 
-Behavior:
+## Hardware Required
 
-- The LVGL button starts vibration on `PRESSED`.
-- `RELEASED`, `PRESS_LOST`, `DELETE`, or the software timeout stops the motor.
-- Default maximum on-time is 400 ms and can be configured up to 500 ms.
-- Any GPIO or timer error immediately attempts IN1/IN2 low and reports `FAULT`.
-- LVGL callbacks only enqueue commands; they do not block or delay.
+- ESP32-P4-Knob-Touch-AMOLED-1.75 development board
 
-Expected result:
+## How to Run
 
-- Pressing the button gives a short forward vibration.
-- Releasing the button or holding longer than the guard time returns the UI to `IDLE`.
+Run this command from this example directory using the ESP-IDF version listed in the repository README:
 
-Still requires real-board verification of actuator feel, supply current, and thermal behavior.
+```bash
+idf.py set-target esp32p4 build flash monitor
+```
+
+## Expected Result
+
+The display shows a **VIBRATE** button and the current motor state. Holding the button starts a short vibration; release or the configured guard timeout stops it and returns the UI to `IDLE`.
+
+## Troubleshooting
+
+The maximum on-time is set by `CONFIG_MOTOR08_MAX_ON_MS`; the source limits it to 500 ms. If GPIO or timer control fails, the UI reports `FAULT` and attempts to stop the motor.

@@ -1,39 +1,27 @@
-# 04_bluetooth
+# Bluetooth Scan
 
-BLE GAP scan demo for the ESP32-P4 Knob Touch AMOLED 1.75.
+[English](README.md) | [简体中文](README_ZH.md)
 
-This project intentionally reports human-readable BLE advertisers instead of printing every raw address packet.
+## What It Does
 
-Wireless contract:
+Performs Bluetooth Low Energy GAP scanning through the external connectivity component. It summarizes nearby advertisers and does not connect, pair, or discover services.
 
-- `esp_extconn_init()` with `ESP_EXTCONN_CONFIG_DEFAULT()` is the first hardware initialization in `app_main`.
-- Wireless transport is provided directly by the `espressif/esp-extconn` managed component.
-- `main/idf_component.yml` pins `espressif/esp-extconn` to `0.3.3`.
-- This board uses an ESP32-D0WD-V3/D0WDR2-V3 wireless coprocessor on SDIO slot 1 with EN54 active-high, BOOT6, CLK18, CMD19, and D0..D3 on GPIO14..17.
-- This page uses only BLE GAP scan through the external coprocessor transport.
-- The Wi-Fi host transport is enabled only for the esp-extconn coprocessor boot path; this app does not start Wi-Fi scans, connect, pair, or perform GATT/service discovery.
+## Hardware Required
 
-## Output
+- ESP32-P4-Knob-Touch-AMOLED-1.75 development board
 
-Each scan window lasts about 10 seconds. During the window no per-packet address log is printed. At the end the log prints:
+## How to Run
 
-- unique advertisers tracked after expiry
-- named advertisers
-- newly discovered advertisers in this window
-- expired advertisers removed from the aggregate table
-- strongest advertiser
-- up to ten advertisers sorted by RSSI with name, address, address type, RSSI, and seen count
+Run the following command from this example directory. Use the ESP-IDF version listed in the repository README.
 
-Unnamed advertisers are displayed as `Unnamed`. Complete local name is preferred over short local name.
-
-Future speaker-output or audio transport work belongs in `13_speaker_output`, not in this BLE GAP-only scanner.
-
-
-## Build
-
-Build with ESP-IDF v5.5.4 for `esp32p4` and ccache enabled. Use an external short build directory.
-
-```text
-idf.py -C examples/esp-idf/peripheral_tests/04_bluetooth -B <external-build-dir> set-target esp32p4 build
+```bash
+idf.py set-target esp32p4 build flash monitor
 ```
 
+## Expected Result
+
+At the end of each scan window, the serial monitor prints an aggregate summary and up to ten advertisers sorted by RSSI.
+
+## Troubleshooting
+
+This is a BLE GAP scanner only. Scan startup or transport errors are logged and the example schedules another scan attempt.

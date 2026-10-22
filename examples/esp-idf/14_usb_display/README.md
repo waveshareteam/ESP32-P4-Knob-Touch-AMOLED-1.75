@@ -1,28 +1,27 @@
-# 14_usb_display
+# 14 USB Display
 
-Reserved ESP-IDF project skeleton for a future USB display test.
+[English](README.md) | [简体中文](README_ZH.md)
 
-Current status:
+## What It Does
 
-- RESERVED
-- NOT IMPLEMENTED
-- UNTESTED
+This project is a reserved placeholder for a future USB display example. The current implementation only writes `RESERVED`, `NOT IMPLEMENTED`, and `UNTESTED` to the log, then waits.
 
-This project intentionally does not initialize:
+## Hardware Required
 
-- USB host or USB device roles
-- Host 5 V or external USB power switching
-- TinyUSB
-- DisplayLink or other USB display protocols
-- Any unknown expansion-screen driver
+- ESP32-P4-Knob-Touch-AMOLED-1.75 development board
 
-Future implementation must first confirm:
+## How to Run
 
-- The intended USB role for the ESP32-P4 side.
-- The board power path and whether any Host 5 V control GPIO exists.
-- The USB display protocol or bridge IC.
-- The exact external display model and resolution.
-- Whether the test should share the onboard CO5300 UI for status only or target a real USB display endpoint.
+Run this command from this example directory using the ESP-IDF version listed in the repository README:
 
-The firmware reports only RESERVED / NOT IMPLEMENTED / UNTESTED status because no USB display behavior is implemented or tested yet.
+```bash
+idf.py set-target esp32p4 build flash monitor
+```
 
+## Expected Result
+
+The serial monitor reports that the example is reserved and not implemented. It does not initialize a USB role, a USB display protocol, or an external display device.
+
+## Troubleshooting
+
+This project has no USB-display test to troubleshoot because USB display support is not implemented.

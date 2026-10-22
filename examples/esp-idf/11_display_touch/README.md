@@ -1,28 +1,27 @@
-# 11_display_touch
+# 11 Display and Touch
 
-Combined CO5300 display color-stage and CST9217 touch drawing test.
+[English](README.md) | [简体中文](README_ZH.md)
 
-Hardware used:
+## What It Does
 
-- Display: CO5300, 466x466
-- Touch: CST9217
-- LCD reset: GPIO29
-- Touch reset: GPIO27
+This example checks the onboard display and touch path with red, green, and blue full-screen stages, followed by a touch drawing page. The drawing page adds dots at touch positions and provides a button to clear them.
 
-Behavior:
+## Hardware Required
 
-- Starts the verified BSP LVGL display path once with independent LCD and touch reset lines.
-- Uses LVGL full-screen fills for red, green, and blue on that same BSP display.
-- Each color stage lasts about 1.8 seconds.
-- A panel touch or BOOT button press can advance a color stage early.
-- After the color stages, the same LVGL display switches to a white background.
-- Touch input draws fixed-size black dots at bounded coordinates.
-- A small `Clear` button removes dots and resets the counter.
+- ESP32-P4-Knob-Touch-AMOLED-1.75 development board
 
-Pass criteria:
+## How to Run
 
-- Red, green, and blue full-screen phases are clean, correctly colored, and complete automatically.
-- The white touch page appears after the color stages.
-- Touch points appear where the panel is touched, stay inside the visible screen area, and the clear button resets the count.
+Run this command from this example directory using the ESP-IDF version listed in the repository README:
 
-LCD reset GPIO29 and touch reset GPIO27 are independent reset pins.
+```bash
+idf.py set-target esp32p4 build flash monitor
+```
+
+## Expected Result
+
+The display passes through red, green, and blue screens, then opens a white touch page. Touching the page draws black dots; selecting **Clear** removes the dots and resets the count.
+
+## Troubleshooting
+
+Touching the color screen or pressing the BOOT button advances to the next color stage. The drawing page keeps a bounded list of dots and removes the oldest one when full.
