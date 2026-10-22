@@ -1,0 +1,20 @@
+dependencies:
+  idf:
+    version: ">=5.5"
+
+  espressif/esp_codec_dev:
+    version: "*"
+    public: true
+
+  chmorgan/esp-audio-player:
+    version: "1.1.*"
+    public: true
+
+  chmorgan/esp-file-iterator:
+    version: "1.0.0"
+    public: true
+
+description: Extra audio helpers for the ESP32-P4-Knob-Touch-AMOLED-1.75 Brookesia example
+targets:
+- esp32p4
+version: 0.0.2

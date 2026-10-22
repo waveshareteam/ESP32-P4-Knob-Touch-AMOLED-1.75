@@ -1,0 +1,31 @@
+**/.vscode
+**/.idea
+**/build
+**/managed_components
+**/dependencies.lock
+**/sdkconfig
+**/sdkconfig.old
+**/__pycache__/
+release-artifacts/
+release-downloads/
+release-dist/
+
+# Local AI coding agent state
+.claude/
+.cursor/
+.codex/
+.gemini/
+.windsurf/
+.continue/
+.roo/
+.cline/
+.aider*
+
+.agents/
+**/.clangd
+**/build_*/
+
+# Original development checkouts retained locally
+/test/
+/schdoc/参考/
+/examples/esp-idf/peripheral_tests/build_all.ps1

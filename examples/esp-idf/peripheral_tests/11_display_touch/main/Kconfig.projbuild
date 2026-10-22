@@ -1,0 +1,11 @@
+menu "11 display touch"
+    config DISPLAY11_COLOR_STAGE_MS
+        int "Each LVGL color stage duration in ms"
+        range 1500 2000
+        default 1800
+
+    config DISPLAY11_DOT_MAX
+        int "Maximum retained touch dots"
+        range 16 256
+        default 128
+endmenu

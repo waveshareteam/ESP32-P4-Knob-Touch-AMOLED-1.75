@@ -1,0 +1,3 @@
+dependencies:
+  idf: ">=5.5.4"
+  espressif/esp-extconn: "0.3.3"
