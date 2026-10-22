@@ -6,8 +6,8 @@ cmake_minimum_required(VERSION 3.5)
 include($ENV{IDF_PATH}/tools/cmake/project.cmake)
 project(esp-brookesia)
 
-if(TARGET __idf_espressif__esp-boost AND CMAKE_CXX_COMPILER_ID MATCHES "Clang")
-    target_compile_options(__idf_espressif__esp-boost PRIVATE
-        $<$<COMPILE_LANGUAGE:CXX>:-Wno-error=deprecated-variadic-comma-omission>
-    )
-endif()
+# Keep esp-boost 0.3.x on C++23 until its Proto sources support C++26.
+idf_component_get_property(ESP_BOOST_LIB espressif__esp-boost COMPONENT_LIB)
+target_compile_options(${ESP_BOOST_LIB} PRIVATE
+    "$<$<COMPILE_LANGUAGE:CXX>:-std=gnu++23>"
+)
