@@ -1,30 +1,27 @@
-# Peripheral Test 12: Mic Spectrum
+# 12 Microphone Spectrum
 
-Real microphone spectrum demo for ESP32-P4 using the board ES7210 input path.
+[English](README.md) | [简体中文](README_ZH.md)
 
-## Contract
+## What It Does
 
-- Target: `esp32p4` with ESP-IDF v5.5.4.
-- Input codec: board microphone input, opened through `bsp_audio_codec_microphone_init()`.
-- Output codec: disabled. ES8389 is not opened by this demo.
-- Speaker PA: forced off before audio/display work starts and kept off on error paths.
-- DSP: `espressif/esp-dsp` pinned to `1.8.2`.
-- Display: BSP display and LVGL (`bsp_display_start()`) on the 466 x 466 panel.
+This example captures audio from the ES7210 microphone path and shows a real-time FFT spectrum, RMS level, and peak level on the LVGL display. It keeps the output codec disabled and processes microphone input in a separate task.
 
-## Behavior
+## Hardware Required
 
-The capture task reads real I2S PCM from ES7210 at 16 kHz, 16-bit stereo. Samples are mixed to mono, DC is removed, a Hann window is applied, and a 512-point FFT is converted into 32 stable log-spaced bars. The UI task drains a two-slot queue at about 20 fps and displays bars, RMS, peak, queue overrun count, read error count, and status text.
+- ESP32-P4-Knob-Touch-AMOLED-1.75 development board
 
-The LVGL path never blocks on I2S. If audio initialization fails, the screen shows the failing stage and the PA remains off.
+## How to Run
 
-## Build
+Run this command from this example directory using the ESP-IDF version listed in the repository README:
 
-```powershell
-idf.py -C examples/esp-idf/peripheral_tests/12_mic_spectrum -B <short-external-build-dir> set-target esp32p4 build
+```bash
+idf.py set-target esp32p4 build flash monitor
 ```
 
-Use ESP-IDF v5.5.4 and enable ccache before building.
+## Expected Result
 
-## Real-board acceptance standard
+The display shows moving spectrum bars that respond to nearby sound, together with RMS, peak, overrun, and read-error values. If audio initialization or sampling fails, the status line identifies the failed stage.
 
-After flashing manually, the screen should show `Sampling: ES7210 input`, `Output codec: disabled`, moving spectrum bars that respond to nearby sound, plausible RMS/peak values, and no growing read error or queue overrun count during normal operation. Any initialization failure must show `FAILED` in the log and, after LVGL is available, on the screen. No sound should be produced by the speaker.
+## Troubleshooting
+
+This example captures microphone input only and does not produce speaker audio. Its queue retains the newest frame when it overflows, so the overrun counter can reveal an overloaded display path.
