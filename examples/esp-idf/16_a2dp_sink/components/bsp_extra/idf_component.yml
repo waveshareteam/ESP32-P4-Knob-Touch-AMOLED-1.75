@@ -5,8 +5,10 @@ dependencies:
   waveshare/esp32_p4_knob_touch_amoled_1_75:
     version: "*"
 
+  # 1.1.x declares the I2S driver dependency needed by ESP-IDF 6.
+  # Revisit the version range after validating a newer series with this helper.
   chmorgan/esp-audio-player:
-    version: "1.0.*"
+    version: "1.1.*"
     public: true
 
   chmorgan/esp-file-iterator:
