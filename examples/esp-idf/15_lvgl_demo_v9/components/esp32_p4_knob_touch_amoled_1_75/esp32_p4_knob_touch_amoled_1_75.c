@@ -433,7 +433,7 @@ esp_err_t bsp_display_new_with_handles(const bsp_display_config_t *config, bsp_l
         .dpi_clk_src = MIPI_DSI_DPI_CLK_SRC_DEFAULT,
         .dpi_clock_freq_mhz = 16,
         .virtual_channel = 0,
-        .pixel_format = LCD_COLOR_PIXEL_FORMAT_RGB565,
+        .in_color_format = LCD_COLOR_FMT_RGB565,
         .num_fbs = 3,
         .video_timing = {
             .h_size = 466,
@@ -445,7 +445,6 @@ esp_err_t bsp_display_new_with_handles(const bsp_display_config_t *config, bsp_l
             .vsync_pulse_width = 4,
             .vsync_front_porch = 18,
         },
-        .flags.use_dma2d = true,
     };
 
     co5300_vendor_config_t vendor_config = {
@@ -462,6 +461,7 @@ esp_err_t bsp_display_new_with_handles(const bsp_display_config_t *config, bsp_l
         .vendor_config = &vendor_config,
     };
     ESP_GOTO_ON_ERROR(esp_lcd_new_panel_co5300(io_handle, &lcd_dev_config, &panel_handle), err, TAG, "New LCD panel CO5300 failed");
+    ESP_GOTO_ON_ERROR(esp_lcd_dpi_panel_enable_dma2d(panel_handle), err, TAG, "Enable MIPI DPI DMA2D failed");
     ESP_GOTO_ON_ERROR(esp_lcd_panel_reset(panel_handle), err, TAG, "LCD panel reset failed");
     ESP_GOTO_ON_ERROR(esp_lcd_panel_init(panel_handle), err, TAG, "LCD panel init failed");
 

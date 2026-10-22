@@ -448,7 +448,7 @@ esp_err_t bsp_display_new_with_handles(const bsp_display_config_t *config, bsp_l
         .dpi_clk_src = MIPI_DSI_DPI_CLK_SRC_DEFAULT,
         .dpi_clock_freq_mhz = 16,
         .virtual_channel = 0,
-        .pixel_format = LCD_COLOR_PIXEL_FORMAT_RGB565,
+        .in_color_format = LCD_COLOR_FMT_RGB565,
         .num_fbs = 3,
         .video_timing = {
             .h_size = 466,
@@ -460,7 +460,6 @@ esp_err_t bsp_display_new_with_handles(const bsp_display_config_t *config, bsp_l
             .vsync_pulse_width = 4,
             .vsync_front_porch = 18,
         },
-        .flags.use_dma2d = false,
     };
 
     co5300_vendor_config_t vendor_config = {
