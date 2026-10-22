@@ -11,6 +11,10 @@ dependencies:
     pre_release: true
   idf: '>=5.3'
   lvgl/lvgl: '>=8,<10'
+  espressif/usb:
+    version: "^1.0.0"
+    rules:
+      - if: "idf_version >=6.0"
 description: Board Support Package (BSP) for Waveshare ESP32-P4-Knob-Touch-AMOLED-1.75
 tags:
 - bsp
