@@ -11,7 +11,7 @@
     <a href="https://www.waveshare.com/wiki/ESP32-P4-Knob-Touch-AMOLED-1.75">🌐 Product</a> &middot;
     <a href="#quick-start">📦 Firmware</a> &middot;
     <a href="examples/esp-idf/">🧩 ESP-IDF</a> &middot;
-    <a href="hardware/schematic/">📚 Documentation</a>
+    <a href="#resources">📚 Documentation</a>
   </p>
 </div>
 
@@ -19,7 +19,7 @@
 
 ## ✨ Overview
 
-This board combines an ESP32-P4 with a round AMOLED touch display, rotary direction inputs and vibration feedback. This repository provides ESP-IDF peripheral examples, display and audio applications, and schematics for the main board and adapter.
+This board combines an ESP32-P4 with a round AMOLED touch display, rotary direction inputs and vibration feedback. This repository provides ESP-IDF peripheral examples, display and audio applications.
 
 | Feature | Device / interface |
 | --- | --- |
@@ -77,10 +77,10 @@ The repository currently provides source examples. Prebuilt example packages and
 
 The target is `esp32p4`; the framework configuration is maintained in [product.json](.github/product.json).
 
+<a id="resources"></a>
+
 ## 📚 Resources
 
-- [Main board schematic](hardware/schematic/ESP32-P4-Knob-Touch-AMOLED-1.75.pdf)
-- [Adapter schematic](hardware/schematic/ESP32-P4-Knob-Adapter.pdf)
 - [Official product Wiki](https://www.waveshare.com/wiki/ESP32-P4-Knob-Touch-AMOLED-1.75)
 
 ## 🤝 Support

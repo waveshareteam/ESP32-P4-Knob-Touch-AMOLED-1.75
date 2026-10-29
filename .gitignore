@@ -27,5 +27,12 @@ release-dist/
 
 # Original development checkouts retained locally
 /test/
-/schdoc/参考/
+/schdoc/
 /examples/esp-idf/peripheral_tests/build_all.ps1
+
+# Schematics are maintained outside the public repository
+/hardware/schematic/
+*.SchDoc
+*.schdoc
+*.kicad_sch
+*.sch

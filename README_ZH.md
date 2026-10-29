@@ -11,7 +11,7 @@
     <a href="https://www.waveshare.com/wiki/ESP32-P4-Knob-Touch-AMOLED-1.75">🌐 产品</a> &middot;
     <a href="#quick-start">📦 固件</a> &middot;
     <a href="examples/esp-idf/">🧩 ESP-IDF</a> &middot;
-    <a href="hardware/schematic/">📚 文档</a>
+    <a href="#resources">📚 文档</a>
   </p>
 </div>
 
@@ -19,7 +19,7 @@
 
 ## ✨ 概述
 
-本开发板将 ESP32-P4、圆形 AMOLED 触摸屏、旋钮方向输入和振动反馈集成在一起。本仓库提供 ESP-IDF 外设示例、显示与音频应用，以及主板和转接板原理图。
+本开发板将 ESP32-P4、圆形 AMOLED 触摸屏、旋钮方向输入和振动反馈集成在一起。本仓库提供 ESP-IDF 外设示例、显示与音频应用。
 
 | 功能 | 器件或接口 |
 | --- | --- |
@@ -77,10 +77,10 @@
 
 目标芯片为 `esp32p4`，框架配置统一记录在 [product.json](.github/product.json) 中。
 
+<a id="resources"></a>
+
 ## 📚 资料
 
-- [主板原理图](hardware/schematic/ESP32-P4-Knob-Touch-AMOLED-1.75.pdf)
-- [转接板原理图](hardware/schematic/ESP32-P4-Knob-Adapter.pdf)
 - [官方产品 Wiki（英文）](https://www.waveshare.com/wiki/ESP32-P4-Knob-Touch-AMOLED-1.75)
 
 ## 🤝 支持
