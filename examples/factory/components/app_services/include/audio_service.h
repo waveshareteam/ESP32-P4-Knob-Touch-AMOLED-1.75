@@ -93,7 +93,8 @@ esp_err_t audio_client_set_mute(audio_client_handle_t client, bool mute);
 const char *audio_service_owner_name(void);
 
 /* Output volume 0-100, saved in NVS. It is the one volume of the device: Settings,
- * the knob in the music apps and a connected phone all change it. */
+ * the knob in the music apps and a connected phone all change it. Requests update
+ * the latest setting immediately and never wait behind streaming output I/O. */
 esp_err_t audio_service_set_volume(int volume);
 int audio_service_get_volume(void);
 
@@ -102,6 +103,7 @@ int audio_service_get_volume(void);
  */
 typedef void (*audio_volume_cb_t)(int volume, void *user_ctx);
 esp_err_t audio_service_add_volume_listener(audio_volume_cb_t cb, void *user_ctx);
+/** Global mute follows the same non-blocking update path as volume. */
 esp_err_t audio_service_set_mute(bool mute);
 bool audio_service_get_mute(void);
 

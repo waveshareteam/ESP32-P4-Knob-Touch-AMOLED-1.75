@@ -31,6 +31,9 @@ static const char *TAG = "audio_service";
 static SemaphoreHandle_t s_io_lock;
 static SemaphoreHandle_t s_in_lock;
 static SemaphoreHandle_t s_switch_lock;
+/* User controls only hold this short critical section. They never wait for
+ * playback I/O, which can be held by a high-priority streaming task. */
+static portMUX_TYPE s_settings_lock = portMUX_INITIALIZER_UNLOCKED;
 static audio_client_handle_t s_owner;
 static int s_volume = BOARD_AUDIO_DEFAULT_VOLUME;
 
@@ -41,6 +44,8 @@ static struct {
 } s_volume_listeners[MAX_VOLUME_LISTENERS];
 static bool s_mute;
 static bool s_owner_mute;
+static bool s_output_settings_dirty;
+static uint32_t s_output_settings_generation;
 static esp_timer_handle_t s_save_timer;
 
 static void load_volume(void)
@@ -60,12 +65,15 @@ static void load_volume(void)
 static void save_volume(void *arg)
 {
     (void)arg;
-    ESP_LOGI(TAG, "Volume %d saved", s_volume);
+    taskENTER_CRITICAL(&s_settings_lock);
+    const int volume = s_volume;
+    taskEXIT_CRITICAL(&s_settings_lock);
+    ESP_LOGI(TAG, "Volume %d saved", volume);
     nvs_handle_t nvs;
     if (nvs_open(NVS_NAMESPACE, NVS_READWRITE, &nvs) != ESP_OK) {
         return;
     }
-    if (nvs_set_i32(nvs, NVS_KEY_VOLUME, s_volume) == ESP_OK) {
+    if (nvs_set_i32(nvs, NVS_KEY_VOLUME, volume) == ESP_OK) {
         nvs_commit(nvs);
     }
     nvs_close(nvs);
@@ -83,11 +91,34 @@ static void unlock_all(void)
     xSemaphoreGive(s_io_lock);
 }
 
-/* Reapplies output settings after the codec has been reopened. Caller holds s_io_lock. */
-static void apply_output_settings_locked(void)
+/*
+ * Reapplies settings after a codec reopen, or between streaming writes. Caller
+ * holds s_io_lock. A newer UI request remains dirty for the next audio block.
+ */
+static void apply_output_settings_locked(bool force)
 {
-    board_audio_volume_set(s_volume, NULL);
-    board_audio_mute_set(s_mute || s_owner_mute);
+    taskENTER_CRITICAL(&s_settings_lock);
+    const bool pending = s_output_settings_dirty;
+    const uint32_t generation = s_output_settings_generation;
+    const int volume = s_volume;
+    const bool mute = s_mute;
+    taskEXIT_CRITICAL(&s_settings_lock);
+
+    if (!force && !pending) {
+        return;
+    }
+
+    const esp_err_t volume_ret = board_audio_volume_set(volume, NULL);
+    const esp_err_t mute_ret = board_audio_mute_set(mute || s_owner_mute);
+    if (volume_ret != ESP_OK || mute_ret != ESP_OK) {
+        return;
+    }
+
+    taskENTER_CRITICAL(&s_settings_lock);
+    if (generation == s_output_settings_generation) {
+        s_output_settings_dirty = false;
+    }
+    taskEXIT_CRITICAL(&s_settings_lock);
 }
 
 esp_err_t audio_service_init(void)
@@ -156,7 +187,7 @@ esp_err_t audio_client_acquire_if(audio_client_handle_t client, audio_acquire_ch
     esp_err_t ret = board_audio_resume();
     if (ret == ESP_OK) {
         s_owner_mute = false;
-        apply_output_settings_locked();
+        apply_output_settings_locked(true);
         s_owner = client;
     } else {
         ESP_LOGE(TAG, "Open codec for %s failed", client->config.name);
@@ -203,7 +234,7 @@ esp_err_t audio_client_set_format(audio_client_handle_t client, uint32_t sample_
     if (s_owner == client) {
         ret = board_audio_set_fs(sample_rate, bits_per_sample, (i2s_slot_mode_t)channels);
         if (ret == ESP_OK) {
-            apply_output_settings_locked();
+            apply_output_settings_locked(true);
         }
     }
     unlock_all();
@@ -217,6 +248,7 @@ esp_err_t audio_client_write(audio_client_handle_t client, const void *data, siz
     xSemaphoreTake(s_io_lock, portMAX_DELAY);
     esp_err_t ret = ESP_ERR_INVALID_STATE;
     if (s_owner == client) {
+        apply_output_settings_locked(false);
         size_t written = 0;
         ret = board_audio_write((void *)data, len, &written, portMAX_DELAY);
     }
@@ -246,7 +278,7 @@ esp_err_t audio_client_set_mute(audio_client_handle_t client, bool mute)
     esp_err_t ret = ESP_ERR_INVALID_STATE;
     if (s_owner == client) {
         s_owner_mute = mute;
-        apply_output_settings_locked();
+        apply_output_settings_locked(true);
         ret = ESP_OK;
     }
     xSemaphoreGive(s_io_lock);
@@ -268,15 +300,24 @@ esp_err_t audio_service_set_volume(int volume)
         volume = 100;
     }
 
-    xSemaphoreTake(s_io_lock, portMAX_DELAY);
+    taskENTER_CRITICAL(&s_settings_lock);
     const bool changed = volume != s_volume;
     s_volume = volume;
-    if (s_owner) {
-        board_audio_volume_set(s_volume, NULL);
+    if (changed) {
+        s_output_settings_generation++;
+        s_output_settings_dirty = true;
     }
-    xSemaphoreGive(s_io_lock);
+    taskEXIT_CRITICAL(&s_settings_lock);
     if (!changed) {
         return ESP_OK;
+    }
+
+    /* Do not block a UI/knob event behind a streaming write. */
+    if (xSemaphoreTake(s_io_lock, 0) == pdTRUE) {
+        if (s_owner) {
+            apply_output_settings_locked(false);
+        }
+        xSemaphoreGive(s_io_lock);
     }
 
     esp_timer_stop(s_save_timer);
@@ -304,23 +345,38 @@ esp_err_t audio_service_add_volume_listener(audio_volume_cb_t cb, void *user_ctx
 
 int audio_service_get_volume(void)
 {
-    return s_volume;
+    taskENTER_CRITICAL(&s_settings_lock);
+    const int volume = s_volume;
+    taskEXIT_CRITICAL(&s_settings_lock);
+    return volume;
 }
 
 esp_err_t audio_service_set_mute(bool mute)
 {
     ESP_RETURN_ON_FALSE(s_io_lock, ESP_ERR_INVALID_STATE, TAG, "Service not initialized");
 
-    xSemaphoreTake(s_io_lock, portMAX_DELAY);
+    taskENTER_CRITICAL(&s_settings_lock);
+    const bool changed = mute != s_mute;
     s_mute = mute;
-    if (s_owner) {
-        board_audio_mute_set(s_mute || s_owner_mute);
+    if (changed) {
+        s_output_settings_generation++;
+        s_output_settings_dirty = true;
     }
-    xSemaphoreGive(s_io_lock);
+    taskEXIT_CRITICAL(&s_settings_lock);
+
+    if (xSemaphoreTake(s_io_lock, 0) == pdTRUE) {
+        if (s_owner) {
+            apply_output_settings_locked(false);
+        }
+        xSemaphoreGive(s_io_lock);
+    }
     return ESP_OK;
 }
 
 bool audio_service_get_mute(void)
 {
-    return s_mute;
+    taskENTER_CRITICAL(&s_settings_lock);
+    const bool mute = s_mute;
+    taskEXIT_CRITICAL(&s_settings_lock);
+    return mute;
 }

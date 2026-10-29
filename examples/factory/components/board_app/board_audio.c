@@ -20,6 +20,21 @@ static esp_codec_dev_handle_t record_dev_handle;
 static bool _is_audio_init = false;
 static int _volume_intensity = BOARD_AUDIO_DEFAULT_VOLUME;
 
+/* Keep the normal listening range intact, then reserve a small, explicit
+ * boost for the top fifth of the user-facing volume control. The codec keeps
+ * this curve across close/open; it is registered after every DAC reopen so a
+ * later format change cannot silently fall back to the SDK default. */
+static esp_codec_dev_vol_map_t s_playback_volume_points[] = {
+    {.vol = 0, .db_value = -50.0f},
+    {.vol = 80, .db_value = -10.0f},
+    {.vol = 100, .db_value = 6.0f},
+};
+
+static esp_codec_dev_vol_curve_t s_playback_volume_curve = {
+    .vol_map = s_playback_volume_points,
+    .count = sizeof(s_playback_volume_points) / sizeof(s_playback_volume_points[0]),
+};
+
 
 esp_err_t board_audio_read(void *audio_buffer, size_t len, size_t *bytes_read, uint32_t timeout_ms)
 {
@@ -55,7 +70,11 @@ esp_err_t board_audio_set_fs(uint32_t rate, uint32_t bits_cfg, i2s_slot_mode_t c
     }
 
     if (play_dev_handle) {
-        ret |= esp_codec_dev_open(play_dev_handle, &fs);
+        const int play_ret = esp_codec_dev_open(play_dev_handle, &fs);
+        ret |= play_ret;
+        if (play_ret == ESP_CODEC_DEV_OK) {
+            ret |= esp_codec_dev_set_vol_curve(play_dev_handle, &s_playback_volume_curve);
+        }
     }
     if (record_dev_handle) {
         ret |= esp_codec_dev_open(record_dev_handle, &fs);
