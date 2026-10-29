@@ -286,7 +286,7 @@ static void ui_update(const spectrum_frame_t *frame)
     }
 
     if (frame->audio_ready) {
-        lv_label_set_text_fmt(s_ui.status, "Sampling: ES7210 input  Frame %lu", (unsigned long)frame->frame_index);
+        lv_label_set_text_fmt(s_ui.status, "Sampling: ES8389 input  Frame %lu", (unsigned long)frame->frame_index);
     } else {
         lv_label_set_text_fmt(s_ui.status, "Sampling error: %s", esp_err_to_name(frame->last_error));
     }
@@ -390,9 +390,9 @@ void app_main(void)
     esp_err_t ret = start_audio_pipeline();
     if (ret != ESP_OK) {
         pa_off();
-        ui_show_error("ES7210 input pipeline", ret);
+        ui_show_error("ES8389 input pipeline", ret);
     } else {
-        ESP_LOGI(TAG, "ES7210 input running at %d Hz, %d-point FFT; output codec disabled", MIC_SAMPLE_RATE_HZ, FFT_SIZE);
+        ESP_LOGI(TAG, "ES8389 input running at %d Hz, %d-point FFT; output codec disabled", MIC_SAMPLE_RATE_HZ, FFT_SIZE);
     }
 
     int64_t next_ui_us = esp_timer_get_time();

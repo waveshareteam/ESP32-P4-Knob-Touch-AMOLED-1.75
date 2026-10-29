@@ -2,6 +2,7 @@
 #include "driver/gpio.h"
 #include "driver/ledc.h"
 #include "esp_err.h"
+#include "esp_idf_version.h"
 #include "esp_log.h"
 #include "esp_check.h"
 #include "esp_spiffs.h"
@@ -461,7 +462,9 @@ esp_err_t bsp_display_new_with_handles(const bsp_display_config_t *config, bsp_l
         .vendor_config = &vendor_config,
     };
     ESP_GOTO_ON_ERROR(esp_lcd_new_panel_co5300(io_handle, &lcd_dev_config, &panel_handle), err, TAG, "New LCD panel CO5300 failed");
+#if ESP_IDF_VERSION >= ESP_IDF_VERSION_VAL(6, 0, 0)
     ESP_GOTO_ON_ERROR(esp_lcd_dpi_panel_enable_dma2d(panel_handle), err, TAG, "Enable MIPI DPI DMA2D failed");
+#endif
     ESP_GOTO_ON_ERROR(esp_lcd_panel_reset(panel_handle), err, TAG, "LCD panel reset failed");
     ESP_GOTO_ON_ERROR(esp_lcd_panel_init(panel_handle), err, TAG, "LCD panel init failed");
 
@@ -501,7 +504,7 @@ esp_err_t bsp_touch_new(const bsp_display_cfg_t *cfg, esp_lcd_touch_handle_t *re
     const esp_lcd_touch_config_t tp_cfg = {
         .x_max = BSP_LCD_H_RES,
         .y_max = BSP_LCD_V_RES,
-        .rst_gpio_num = BSP_LCD_TOUCH_RST, // Shared with LCD reset
+        .rst_gpio_num = BSP_LCD_TOUCH_RST, // Dedicated touch reset GPIO
         .int_gpio_num = BSP_LCD_TOUCH_INT,
         .levels = {
             .reset = 0,
@@ -599,9 +602,9 @@ void bsp_display_rotate(lv_display_t *disp, lv_disp_rotation_t rotation)
     lv_disp_set_rotation(disp, rotation);
 }
 
-bool bsp_display_lock(uint32_t timeout_ms)
+bool bsp_display_lock(int32_t timeout_ms)
 {
-    return esp_lv_adapter_lock(timeout_ms);
+    return esp_lv_adapter_lock(timeout_ms) == ESP_OK;
 }
 
 void bsp_display_unlock(void)

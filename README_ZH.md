@@ -19,7 +19,7 @@
 
 ## ✨ 概述
 
-本开发板将 ESP32-P4、圆形 AMOLED 触摸屏、旋钮方向输入和振动反馈集成在一起。本仓库提供 ESP-IDF 外设示例、显示与音频应用。
+本开发板将 ESP32-P4、圆形 AMOLED 触摸屏、旋钮方向输入和振动反馈集成在一起。本仓库提供 ESP-IDF 外设示例与 ESP-Brookesia 出厂应用。
 
 | 功能 | 器件或接口 |
 | --- | --- |
@@ -38,12 +38,12 @@
 
 ## 📦 快速开始
 
-本仓库当前提供源码示例，尚未提供预编译示例固件包或出厂镜像。
+本仓库提供源码工程。可按各自的 ESP-IDF 版本构建外设示例或 ESP-Brookesia 出厂应用。
 
 1. 安装并启用下方开发环境表中的 ESP-IDF 版本。
 2. 下载或克隆仓库，在所选示例目录中打开终端。
 3. 通过 USB 连接开发板，运行 `idf.py set-target esp32p4 build flash monitor`。
-4. 按示例 README 连接需要的外设并查看预期现象；可先运行[系统信息示例](examples/esp-idf/01_system_info/README_ZH.md)。
+4. 按示例 README 连接需要的外设并查看预期现象；可先运行[系统信息示例](examples/esp-idf/01_system_info/README_ZH.md)，或构建[出厂应用](examples/factory/README_ZH.md)。
 
 ## 🧪 示例
 
@@ -63,17 +63,17 @@
 | [10_qmi8658](examples/esp-idf/10_qmi8658/README_ZH.md) | 加速度曲线 |
 | [11_display_touch](examples/esp-idf/11_display_touch/README_ZH.md) | RGB 显示与触摸绘点 |
 | [12_mic_spectrum](examples/esp-idf/12_mic_spectrum/README_ZH.md) | 麦克风 FFT 频谱 |
-| [13_speaker_output](examples/esp-idf/13_speaker_output/README_ZH.md) | 预留框架，未实现声音播放 |
-| [14_usb_display](examples/esp-idf/14_usb_display/README_ZH.md) | 预留框架，未实现 USB 显示 |
+| [13_speaker_output](examples/esp-idf/13_speaker_output/README_ZH.md) | 扬声器测试音播放 |
+| [14_usb_display](examples/esp-idf/14_usb_display/README_ZH.md) | USB 显示接收端 |
 | [15_lvgl_demo_v9](examples/esp-idf/15_lvgl_demo_v9/README_ZH.md) | LVGL 性能测试 |
 | [16_a2dp_sink](examples/esp-idf/16_a2dp_sink/README_ZH.md) | 蓝牙音频接收与显示 |
-| [17_brookesia](examples/esp-idf/17_brookesia/README_ZH.md) | Brookesia 应用启动界面 |
 
 ## 🛠️ 开发环境
 
 | 开发框架 | 配置版本 | 示例数 |
 | --- | --- | ---: |
-| ESP-IDF | `v6.1` | 17 |
+| ESP-IDF 外设示例 | `v5.5.6`、`v6.1` | 16 |
+| ESP-IDF 出厂应用 | `v6.1` | 1 |
 
 目标芯片为 `esp32p4`，框架配置统一记录在 [product.json](.github/product.json) 中。
 

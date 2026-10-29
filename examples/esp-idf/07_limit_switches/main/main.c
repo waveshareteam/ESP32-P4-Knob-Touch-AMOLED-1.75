@@ -6,6 +6,7 @@
 #include "freertos/task.h"
 #include "driver/gpio.h"
 #include "driver/pulse_cnt.h"
+#include "esp_attr.h"
 #include "esp_err.h"
 #include "esp_log.h"
 #include "esp_system.h"
@@ -42,8 +43,13 @@ typedef struct {
     const char *name;
     gpio_num_t gpio;
     int stable_level;
+    int raw_level;
     uint32_t change_count;
     uint32_t raw_edge_count;
+    uint32_t raw_level_since_ms;
+    uint32_t last_edge_us;
+    bool settling;
+    bool pressed;
     atomic_int ui_level;
     atomic_uint_least32_t ui_change_count;
     int displayed_level;
@@ -62,9 +68,18 @@ typedef struct {
     size_t count;
 } ui_context_t;
 
+#if !CONFIG_LIMIT_SWITCHES_MODE_INPUT_ONLY
 static lv_display_t *g_disp;
 static lv_obj_t *g_status_label;
 static ui_context_t g_ui_context;
+static void start_display(switch_state_t switches[], size_t count);
+#endif
+
+#if CONFIG_LIMIT_SWITCHES_MODE_GPIO_IRQ
+static TaskHandle_t g_switch_task;
+static portMUX_TYPE g_switch_lock = portMUX_INITIALIZER_UNLOCKED;
+static esp_timer_handle_t g_switch_settle_timer;
+#endif
 
 #define STATUS_LOG_INTERVAL_MS 1000
 #define SWITCH_POLL_INTERVAL_MS 10
@@ -86,6 +101,7 @@ static uint32_t now_ms(void)
     return (uint32_t)(esp_timer_get_time() / 1000ULL);
 }
 
+#if !CONFIG_LIMIT_SWITCHES_MODE_INPUT_ONLY
 static const char *level_text(int level)
 {
     return level ? "HIGH" : "LOW";
@@ -204,6 +220,7 @@ static void create_ui(switch_state_t switches[], size_t count)
         create_switch_panel(row, &switches[i]);
     }
 }
+#endif
 
 static esp_err_t switch_gpio_input(gpio_num_t gpio, bool pullup, bool pulldown)
 {
@@ -217,6 +234,7 @@ static esp_err_t switch_gpio_input(gpio_num_t gpio, bool pullup, bool pulldown)
     return gpio_config(&cfg);
 }
 
+#if CONFIG_LIMIT_SWITCHES_MODE_PCNT
 static esp_err_t switch_init(switch_state_t *sw)
 {
     esp_err_t ret = switch_gpio_input(sw->gpio, SWITCH_PULLUP, SWITCH_PULLDOWN);
@@ -327,6 +345,7 @@ static esp_err_t switch_poll(switch_state_t *sw, uint32_t now)
     }
     return ESP_OK;
 }
+#endif
 
 static void fail_idle(void)
 {
@@ -335,6 +354,147 @@ static void fail_idle(void)
     }
 }
 
+#if CONFIG_LIMIT_SWITCHES_MODE_GPIO_IRQ
+static void IRAM_ATTR switch_edge_isr(void *arg)
+{
+    switch_state_t *sw = (switch_state_t *)arg;
+    const uint32_t now = (uint32_t)esp_timer_get_time();
+    portENTER_CRITICAL_ISR(&g_switch_lock);
+    sw->last_edge_us = now;
+    sw->settling = true;
+    sw->raw_edge_count++;
+    portEXIT_CRITICAL_ISR(&g_switch_lock);
+
+    BaseType_t woken = pdFALSE;
+    vTaskNotifyGiveFromISR(g_switch_task, &woken);
+    portYIELD_FROM_ISR(woken);
+}
+
+static uint32_t switch_confirm_inputs(switch_state_t switches[], size_t count)
+{
+    const uint32_t settle_us = CONFIG_LIMIT_SWITCHES_DEBOUNCE_MS * 1000U;
+    uint32_t wait_us = UINT32_MAX;
+
+    for (size_t i = 0; i < count; ++i) {
+        switch_state_t *sw = &switches[i];
+        taskENTER_CRITICAL(&g_switch_lock);
+        const bool settling = sw->settling;
+        const uint32_t now = (uint32_t)esp_timer_get_time();
+        const uint32_t held_us = now - sw->last_edge_us;
+        const bool ready = settling && held_us >= settle_us;
+        bool pressed = false;
+        if (ready) {
+            sw->settling = false;
+            pressed = gpio_get_level(sw->gpio) == 0;
+        }
+        taskEXIT_CRITICAL(&g_switch_lock);
+
+        if (settling && !ready) {
+            const uint32_t left = settle_us - held_us;
+            wait_us = left < wait_us ? left : wait_us;
+            continue;
+        }
+        if (!ready) {
+            continue;
+        }
+        sw->stable_level = pressed ? 0 : 1;
+        if (pressed && !sw->pressed) {
+            sw->change_count++;
+        }
+        sw->pressed = pressed;
+        publish_switch_ui_state(sw);
+    }
+
+    if (wait_us == UINT32_MAX) {
+        return 0;
+    }
+    return wait_us;
+}
+
+static void switch_settle_timer_cb(void *arg)
+{
+    (void)arg;
+    xTaskNotifyGive(g_switch_task);
+}
+
+static void switch_arm_settle_timer(uint32_t wait_us)
+{
+    if (wait_us == 0) {
+        return;
+    }
+    esp_err_t ret = esp_timer_stop(g_switch_settle_timer);
+    if (ret != ESP_OK && ret != ESP_ERR_INVALID_STATE) {
+        ESP_LOGE(TAG, "FAIL stop settle timer: %s", esp_err_to_name(ret));
+        fail_idle();
+    }
+    ret = esp_timer_start_once(g_switch_settle_timer, wait_us);
+    if (ret != ESP_OK) {
+        ESP_LOGE(TAG, "FAIL start settle timer: %s", esp_err_to_name(ret));
+        fail_idle();
+    }
+}
+
+static void run_gpio_irq_test(switch_state_t switches[], size_t count)
+{
+    for (size_t i = 0; i < count; ++i) {
+        esp_err_t ret = switch_gpio_input(switches[i].gpio, SWITCH_PULLUP, SWITCH_PULLDOWN);
+        if (ret != ESP_OK) {
+            ESP_LOGE(TAG, "FAIL configure GPIO%d: %s", switches[i].gpio, esp_err_to_name(ret));
+            fail_idle();
+        }
+        switches[i].stable_level = gpio_get_level(switches[i].gpio);
+        switches[i].pressed = switches[i].stable_level == 0;
+        ret = gpio_set_intr_type(switches[i].gpio, GPIO_INTR_ANYEDGE);
+        if (ret != ESP_OK) {
+            ESP_LOGE(TAG, "FAIL configure GPIO%d interrupt: %s", switches[i].gpio, esp_err_to_name(ret));
+            fail_idle();
+        }
+    }
+
+    start_display(switches, count);
+    g_switch_task = xTaskGetCurrentTaskHandle();
+    const esp_timer_create_args_t timer_args = {
+        .callback = switch_settle_timer_cb,
+        .name = "switch_settle",
+    };
+    if (esp_timer_create(&timer_args, &g_switch_settle_timer) != ESP_OK) {
+        ESP_LOGE(TAG, "FAIL create settle timer");
+        fail_idle();
+    }
+    for (size_t i = 0; i < count; ++i) {
+        esp_err_t ret = gpio_isr_handler_add(switches[i].gpio, switch_edge_isr, &switches[i]);
+        if (ret == ESP_ERR_INVALID_STATE) {
+            ret = gpio_install_isr_service(0);
+            if (ret == ESP_OK) {
+                ret = gpio_isr_handler_add(switches[i].gpio, switch_edge_isr, &switches[i]);
+            }
+        }
+        if (ret != ESP_OK) {
+            ESP_LOGE(TAG, "FAIL add GPIO%d interrupt handler: %s", switches[i].gpio, esp_err_to_name(ret));
+            fail_idle();
+        }
+    }
+
+    ESP_LOGI(TAG, "IRQ TEST: GPIO20/GPIO21 any-edge, pullup=%d pulldown=%d, settle=%d ms",
+             SWITCH_PULLUP, SWITCH_PULLDOWN, CONFIG_LIMIT_SWITCHES_DEBOUNCE_MS);
+    uint32_t next_status_ms = now_ms() + STATUS_LOG_INTERVAL_MS;
+    while (true) {
+        ulTaskNotifyTake(pdTRUE, pdMS_TO_TICKS(STATUS_LOG_INTERVAL_MS));
+        const uint32_t settle_wait_us = switch_confirm_inputs(switches, count);
+        switch_arm_settle_timer(settle_wait_us);
+        uint32_t now = now_ms();
+        if ((int32_t)(now - next_status_ms) >= 0) {
+            ESP_LOGI(TAG, "IRQ STATUS GPIO20=%s falling=%lu raw=%lu GPIO21=%s falling=%lu raw=%lu",
+                     level_text(switches[0].stable_level), (unsigned long)switches[0].change_count,
+                     (unsigned long)switches[0].raw_edge_count, level_text(switches[1].stable_level),
+                     (unsigned long)switches[1].change_count, (unsigned long)switches[1].raw_edge_count);
+            next_status_ms = now + STATUS_LOG_INTERVAL_MS;
+        }
+    }
+}
+#endif
+
+#if !CONFIG_LIMIT_SWITCHES_MODE_INPUT_ONLY
 static void start_display(switch_state_t switches[], size_t count)
 {
     if (!LIMIT_SWITCHES_DISPLAY_ENABLED) {
@@ -399,19 +559,14 @@ static void start_display(switch_state_t switches[], size_t count)
              DISPLAY_REFRESH_INTERVAL_MS, LVGL_TICK_PERIOD_MS,
              LVGL_TASK_MIN_DELAY_MS, LVGL_TASK_MAX_DELAY_MS, FREERTOS_SYSTIMER_LEVEL);
 }
+#endif
 
+#if CONFIG_LIMIT_SWITCHES_MODE_INPUT_ONLY || CONFIG_LIMIT_SWITCHES_MODE_POLLING
 static esp_err_t configure_switch_input_gpio(gpio_num_t gpio)
 {
-    gpio_config_t cfg = {
-        .pin_bit_mask = 1ULL << gpio,
-        .mode = GPIO_MODE_INPUT,
-        .pull_up_en = GPIO_PULLUP_ENABLE,
-        .pull_down_en = GPIO_PULLDOWN_DISABLE,
-        .intr_type = GPIO_INTR_DISABLE,
-    };
-
-    return gpio_config(&cfg);
+    return switch_gpio_input(gpio, SWITCH_PULLUP, SWITCH_PULLDOWN);
 }
+#endif
 
 #if defined(CONFIG_LIMIT_SWITCHES_MODE_INPUT_ONLY)
 static void run_input_only_test(void)
@@ -427,7 +582,8 @@ static void run_input_only_test(void)
         }
     }
 
-    ESP_LOGW(TAG, "INPUT-ONLY TEST: GPIO20/GPIO21 inputs enabled, pullup=1 pulldown=0");
+    ESP_LOGW(TAG, "INPUT-ONLY TEST: GPIO20/GPIO21 inputs enabled, pullup=%d pulldown=%d",
+             SWITCH_PULLUP, SWITCH_PULLDOWN);
     ESP_LOGW(TAG, "No GPIO reads, interrupts or PCNT are active");
 
     uint32_t heartbeat = 0;
@@ -439,6 +595,7 @@ static void run_input_only_test(void)
 }
 #endif
 
+#if defined(CONFIG_LIMIT_SWITCHES_MODE_POLLING)
 static void run_gpio_polling_test(switch_state_t switches[], size_t count)
 {
     for (size_t i = 0; i < count; ++i) {
@@ -449,34 +606,44 @@ static void run_gpio_polling_test(switch_state_t switches[], size_t count)
             fail_idle();
         }
         switches[i].stable_level = gpio_get_level(switches[i].gpio);
+        switches[i].raw_level = switches[i].stable_level;
+        switches[i].raw_level_since_ms = now_ms();
     }
 
     start_display(switches, count);
 
-    ESP_LOGW(TAG, "POLLING TEST: GPIO20/GPIO21 inputs enabled, pullup=1 pulldown=0");
-    ESP_LOGW(TAG, "Read interval=%d ms; GPIO interrupts and PCNT are disabled; display=%d",
-             SWITCH_POLL_INTERVAL_MS, LIMIT_SWITCHES_DISPLAY_ENABLED);
+    ESP_LOGW(TAG, "POLLING TEST: GPIO20/GPIO21 inputs enabled, pullup=%d pulldown=%d",
+             SWITCH_PULLUP, SWITCH_PULLDOWN);
+    ESP_LOGW(TAG, "Read interval=%d ms, debounce=%d ms; GPIO interrupts and PCNT are disabled; display=%d",
+             SWITCH_POLL_INTERVAL_MS, CONFIG_LIMIT_SWITCHES_DEBOUNCE_MS,
+             LIMIT_SWITCHES_DISPLAY_ENABLED);
     ESP_LOGI(TAG, "Initial GPIO20=%s GPIO21=%s",
              level_text(switches[0].stable_level), level_text(switches[1].stable_level));
 
     uint32_t next_status_ms = now_ms() + STATUS_LOG_INTERVAL_MS;
     TickType_t last_wake = xTaskGetTickCount();
     while (true) {
+        uint32_t now = now_ms();
         for (size_t i = 0; i < count; ++i) {
-            int level = gpio_get_level(switches[i].gpio);
-            if (level == switches[i].stable_level) {
-                continue;
+            switch_state_t *sw = &switches[i];
+            int level = gpio_get_level(sw->gpio);
+            if (level != sw->raw_level) {
+                sw->raw_level = level;
+                sw->raw_level_since_ms = now;
+                sw->raw_edge_count++;
             }
 
-            switches[i].raw_edge_count++;
-            if (switches[i].stable_level == 1 && level == 0) {
-                switches[i].change_count++;
+            if (sw->raw_level != sw->stable_level &&
+                (int32_t)(now - sw->raw_level_since_ms) >= CONFIG_LIMIT_SWITCHES_DEBOUNCE_MS) {
+                int previous_level = sw->stable_level;
+                sw->stable_level = sw->raw_level;
+                if (previous_level == 1 && sw->stable_level == 0) {
+                    sw->change_count++;
+                }
+                publish_switch_ui_state(sw);
             }
-            switches[i].stable_level = level;
-            publish_switch_ui_state(&switches[i]);
         }
 
-        uint32_t now = now_ms();
         if ((int32_t)(now - next_status_ms) >= 0) {
             ESP_LOGI(TAG,
                      "POLL STATUS GPIO20=%s falling=%lu transitions=%lu "
@@ -493,13 +660,16 @@ static void run_gpio_polling_test(switch_state_t switches[], size_t count)
         vTaskDelayUntil(&last_wake, pdMS_TO_TICKS(SWITCH_POLL_INTERVAL_MS));
     }
 }
+#endif
 
 void app_main(void)
 {
+#if !defined(CONFIG_LIMIT_SWITCHES_MODE_INPUT_ONLY)
     switch_state_t switches[] = {
         {.name = "Switch 1", .gpio = LIMIT_SWITCH_1_GPIO},
         {.name = "Switch 2", .gpio = LIMIT_SWITCH_2_GPIO},
     };
+#endif
 
     ESP_LOGI(TAG, "BOOT reset=%d display=%d psram_xip=%d",
              (int)esp_reset_reason(), LIMIT_SWITCHES_DISPLAY_ENABLED,
@@ -508,11 +678,15 @@ void app_main(void)
 #if defined(CONFIG_LIMIT_SWITCHES_MODE_INPUT_ONLY)
     run_input_only_test();
     return;
+#elif defined(CONFIG_LIMIT_SWITCHES_MODE_GPIO_IRQ)
+    run_gpio_irq_test(switches, sizeof(switches) / sizeof(switches[0]));
+    return;
 #elif defined(CONFIG_LIMIT_SWITCHES_MODE_POLLING)
     run_gpio_polling_test(switches, sizeof(switches) / sizeof(switches[0]));
     return;
 #endif
 
+#if defined(CONFIG_LIMIT_SWITCHES_MODE_PCNT)
     ESP_LOGI(TAG, "START GPIO20/GPIO21 PCNT falling-edge test (display/LVGL enabled)");
     ESP_LOGI(TAG, "Input bias: pullup=%d pulldown=%d debounce=%d ms PCNT filter=%d ns",
              SWITCH_PULLUP, SWITCH_PULLDOWN, CONFIG_LIMIT_SWITCHES_DEBOUNCE_MS,
@@ -554,4 +728,5 @@ void app_main(void)
 
         vTaskDelayUntil(&last_wake, pdMS_TO_TICKS(SWITCH_POLL_INTERVAL_MS));
     }
+#endif
 }

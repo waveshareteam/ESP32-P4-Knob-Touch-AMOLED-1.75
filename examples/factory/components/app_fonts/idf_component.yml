@@ -1,0 +1,4 @@
+dependencies:
+  # Noto Sans "common" set: ASCII, Latin and about 5,300 common Chinese characters
+  78/xiaozhi-fonts:
+    version: "2.0.0"

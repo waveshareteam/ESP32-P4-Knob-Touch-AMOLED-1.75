@@ -1,0 +1,155 @@
+# Devices Configuration
+devices:
+  # 1.75-inch 466x466 CO5300 AMOLED, 1-lane MIPI-DSI
+  - name: display_lcd
+    chip: co5300
+    type: display_lcd
+    sub_type: dsi
+    version: 1.0.0
+    dependencies:
+      espressif/esp_lcd_co5300: "2.0.2"
+    config:
+      need_reset: true
+      reset_gpio_num: 29
+      reset_active_high: 0
+      rgb_ele_order: LCD_RGB_ELEMENT_ORDER_RGB
+      bits_per_pixel: 16
+      frame_format: RGB565_LE
+      dbi_config:
+        virtual_channel: 0
+        lcd_cmd_bits: 8
+        lcd_param_bits: 8
+      dpi_config:
+        virtual_channel: 0
+        dpi_clk_src: MIPI_DSI_DPI_CLK_SRC_DEFAULT
+        dpi_clock_freq_mhz: 16
+        pixel_format: LCD_COLOR_PIXEL_FORMAT_RGB565
+        in_color_format: LCD_COLOR_FMT_RGB565
+        out_color_format: LCD_COLOR_FMT_RGB565
+        num_fbs: 3
+        flags:
+          use_dma2d: true
+          disable_lp: false
+        video_timing:
+          h_size: 466
+          v_size: 466
+          hsync_back_porch: 32
+          hsync_pulse_width: 4
+          hsync_front_porch: 32
+          vsync_back_porch: 12
+          vsync_pulse_width: 4
+          vsync_front_porch: 18
+    peripherals:
+      - ldo_name: ldo_mipi
+      - dsi_name: dsi_display
+
+  # CST9217 capacitive touch on the shared I2C bus
+  - name: lcd_touch
+    chip: cst9217
+    type: lcd_touch
+    sub_type: i2c
+    version: 1.0.0
+    dependencies:
+      waveshare/esp_lcd_touch_cst9217: "2.0.0"
+    config:
+      io_i2c_config:
+        control_phase_bytes: 1
+        dc_bit_offset: 0
+        lcd_cmd_bits: 8
+        lcd_param_bits: 0
+        scl_speed_hz: 400000
+        flags:
+          disable_control_phase: true
+      touch_config:
+        x_max: 466
+        y_max: 466
+        rst_gpio_num: 27
+        int_gpio_num: 26
+        levels:
+          reset: 0
+          interrupt: 0
+        flags:
+          swap_xy: false
+          mirror_x: true
+          mirror_y: true
+    peripherals:
+      - i2c_name: i2c_master
+        i2c_addr: [0xB4]
+
+  # ES8389 playback path (DAC only); the codec runs as I2S slave with MCLK from the SoC
+  - name: audio_dac
+    chip: es8389
+    type: audio_codec
+    version: 1.0.0
+    config:
+      dac_enabled: true
+      sys_cfg:
+        is_master: false
+        no_mclk: false
+    peripherals:
+      - pa_name: gpio_pa_control
+        gain: 0.0
+        active_level: 1
+      - i2s_name: i2s_audio_out
+      - i2c_name: i2c_master
+        address: 0x20
+        frequency: 400000
+
+  # ES7210 dual-microphone capture path. The microphones are wired to ES7210
+  # MIC1/MIC2 and only SDOUT1 reaches the SoC; ES8389's own ADC inputs are
+  # grounded and its ASDOUT pin is an address strap.
+  - name: audio_adc
+    chip: es7210
+    type: audio_codec
+    version: 1.0.0
+    config:
+      adc_enabled: true
+      sys_cfg:
+        is_master: false
+        no_mclk: false
+      adc_cfg:
+        # codec_dev 2.0 label order is LSB to MSB: MIC1, MIC2
+        label: [FL, FR]
+    peripherals:
+      - i2s_name: i2s_audio_in
+      - i2c_name: i2c_master
+        address: 0x80
+        frequency: 400000
+
+  - name: fs_spiffs
+    type: fs_spiffs
+    version: 1.0.0
+    config:
+      base_path: "/spiffs"
+      partition_label: "storage"
+      max_files: 5
+      format_if_mount_failed: false
+
+  # microSD on SDMMC slot 0 (IO MUX pins). The SDMMC IO supply LDO_VO4 is
+  # acquired by the esp-extconn SDIO link on slot 1, which must start first,
+  # so this device does not claim it again. Mounted on demand by applications
+  # so boot does not depend on a card.
+  - name: fs_sdcard
+    type: fs_fat
+    sub_type: sdmmc
+    version: 1.0.0
+    init_skip: true
+    config:
+      mount_point: "/sdcard"
+      vfs_config:
+        format_if_mount_failed: false
+        max_files: 5
+        allocation_unit_size: 65536
+      sub_config:
+        slot: SDMMC_HOST_SLOT_0
+        frequency: SDMMC_FREQ_HIGHSPEED
+        bus_width: 4
+        slot_flags: 0
+        pins:
+          clk: 43
+          cmd: 44
+          d0: 39
+          d1: 40
+          d2: 41
+          d3: 42
+        ldo_chan_id: -1

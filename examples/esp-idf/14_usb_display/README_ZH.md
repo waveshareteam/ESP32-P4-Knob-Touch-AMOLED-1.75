@@ -4,15 +4,16 @@
 
 ## 功能
 
-此工程是未来 USB 显示示例的预留占位符。当前实现只在日志中输出 `RESERVED`、`NOT IMPLEMENTED` 和 `UNTESTED`，随后持续等待。
+本示例将开发板作为 466 × 466 JPEG USB 扩展屏，供 Espressif Windows USB 显示驱动使用。开发板触摸会通过 HID 触摸屏接口回传到主机。
 
 ## 硬件需求
 
 - ESP32-P4-Knob-Touch-AMOLED-1.75 开发板
+- 将转接板 USB 2.0 Type-C 口连接到 Windows 10 或 Windows 11 电脑的 USB-C 线
 
 ## 怎么运行
 
-在当前示例目录中，使用仓库 README 所列版本的 ESP-IDF 运行：
+使用仓库 README 所列 ESP-IDF 版本编译、烧录，然后将开发板连接到电脑并安装兼容的 Espressif USB 显示驱动。
 
 ```bash
 idf.py set-target esp32p4 build flash monitor
@@ -20,8 +21,8 @@ idf.py set-target esp32p4 build flash monitor
 
 ## 预期现象
 
-串口监视器会报告该示例处于预留状态且尚未实现。它不会初始化 USB 角色、USB 显示协议或外接显示设备。
+日志会显示开发板已准备好接收 466 × 466 画面；电脑配置 USB 设备后会记录枚举信息。电脑驱动可以发送全屏 JPEG 帧或局部更新帧，并接收开发板的触摸回传。
 
 ## 常见问题
 
-USB 显示支持尚未实现，因此当前没有可排查的 USB 显示测试问题。
+本示例必须使用转接板上的高速 USB 2.0 口，不能使用 USB 转串口连接。电脑没有识别到扩展屏时，请翻转 Type-C 插头后重新连接。

@@ -2,16 +2,20 @@ menu "Limit switch test"
 
     choice LIMIT_SWITCHES_TEST_MODE
         prompt "Diagnostic mode"
-        default LIMIT_SWITCHES_MODE_POLLING
+        default LIMIT_SWITCHES_MODE_GPIO_IRQ
         help
-            Add GPIO functionality one stage at a time. Polling and PCNT modes
-            show the current levels and trigger counts on the display.
+            The default mode confirms both GPIO inputs after their levels hold
+            for the configured debounce interval. Polling and PCNT modes are
+            retained for diagnosis.
 
         config LIMIT_SWITCHES_MODE_INPUT_ONLY
             bool "Input-only: configure pins without reading them"
 
         config LIMIT_SWITCHES_MODE_POLLING
             bool "Polling: read both pins every 10 ms"
+
+        config LIMIT_SWITCHES_MODE_GPIO_IRQ
+            bool "GPIO interrupt: confirm both pin levels after each edge"
 
         config LIMIT_SWITCHES_MODE_PCNT
             bool "PCNT: hardware falling-edge counting"
@@ -34,11 +38,10 @@ menu "Limit switch test"
     endchoice
 
     config LIMIT_SWITCHES_DEBOUNCE_MS
-        int "Falling-edge debounce window in ms"
+        int "GPIO level settle time in ms"
         range 1 500
-        default 30
+        default 2
         help
-            Falling edges are captured by the PCNT peripheral without a CPU
-            interrupt. Further raw edges from the same switch inside this
-            window are treated as contact bounce and ignored.
+            An edge only restarts this timer. The GPIO level is counted when
+            it has held for the full interval.
 endmenu

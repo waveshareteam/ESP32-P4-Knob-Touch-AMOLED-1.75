@@ -19,7 +19,7 @@
 
 ## ✨ Overview
 
-This board combines an ESP32-P4 with a round AMOLED touch display, rotary direction inputs and vibration feedback. This repository provides ESP-IDF peripheral examples, display and audio applications.
+This board combines an ESP32-P4 with a round AMOLED touch display, rotary direction inputs and vibration feedback. This repository provides ESP-IDF peripheral examples and an ESP-Brookesia factory application.
 
 | Feature | Device / interface |
 | --- | --- |
@@ -38,12 +38,12 @@ This board combines an ESP32-P4 with a round AMOLED touch display, rotary direct
 
 ## 📦 Quick Start
 
-The repository currently provides source examples. Prebuilt example packages and a factory image are not included.
+The repository provides source projects. Build a peripheral example or the ESP-Brookesia factory application with its documented ESP-IDF version.
 
 1. Install and activate ESP-IDF using the version in the development environment table below.
 2. Download or clone this repository, then open a terminal in the chosen example directory.
 3. Connect the board over USB and run `idf.py set-target esp32p4 build flash monitor`.
-4. Follow the example README for any required peripherals and the expected result; start with [system information](examples/esp-idf/01_system_info/).
+4. Follow the example README for any required peripherals and expected result; start with [system information](examples/esp-idf/01_system_info/) or build the [factory application](examples/factory/).
 
 ## 🧪 Examples
 
@@ -63,17 +63,17 @@ The repository currently provides source examples. Prebuilt example packages and
 | [10_qmi8658](examples/esp-idf/10_qmi8658/) | Accelerometer charts |
 | [11_display_touch](examples/esp-idf/11_display_touch/) | RGB display stages and touch drawing |
 | [12_mic_spectrum](examples/esp-idf/12_mic_spectrum/) | Microphone FFT spectrum |
-| [13_speaker_output](examples/esp-idf/13_speaker_output/) | Reserved skeleton; no audio playback |
-| [14_usb_display](examples/esp-idf/14_usb_display/) | Reserved skeleton; no USB display implementation |
+| [13_speaker_output](examples/esp-idf/13_speaker_output/) | Speaker test tone playback |
+| [14_usb_display](examples/esp-idf/14_usb_display/) | USB display receiver |
 | [15_lvgl_demo_v9](examples/esp-idf/15_lvgl_demo_v9/) | LVGL benchmark |
 | [16_a2dp_sink](examples/esp-idf/16_a2dp_sink/) | Bluetooth audio receiver and display |
-| [17_brookesia](examples/esp-idf/17_brookesia/) | Brookesia application launcher |
 
 ## 🛠️ Development Environment
 
 | Framework | Configured version | Examples |
 | --- | --- | ---: |
-| ESP-IDF | `v6.1` | 17 |
+| ESP-IDF examples | `v5.5.6`, `v6.1` | 16 |
+| ESP-IDF factory application | `v6.1` | 1 |
 
 The target is `esp32p4`; the framework configuration is maintained in [product.json](.github/product.json).
 

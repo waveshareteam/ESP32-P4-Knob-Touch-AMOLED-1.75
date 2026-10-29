@@ -167,15 +167,12 @@ static esp_err_t panel_co5300_del(esp_lcd_panel_t *panel)
     co5300_panel_t *co5300 = (co5300_panel_t *)panel_ctx->driver_data;
     ESP_RETURN_ON_FALSE(co5300, ESP_ERR_INVALID_STATE, TAG, "invalid panel data");
 
-    // Delete MIPI DPI panel
-    ESP_RETURN_ON_ERROR(co5300->del(panel), TAG, "del co5300 panel failed");
     if (co5300->reset_gpio_num >= 0) {
         gpio_reset_pin(co5300->reset_gpio_num);
     }
 
-    if (co5300->del) {
-        ESP_RETURN_ON_ERROR(co5300->del(panel), TAG, "delete MIPI DPI panel failed");
-    }
+    ESP_RETURN_ON_FALSE(co5300->del, ESP_ERR_INVALID_STATE, TAG, "MIPI DPI delete callback not initialized");
+    ESP_RETURN_ON_ERROR(co5300->del(panel), TAG, "delete MIPI DPI panel failed");
     ESP_LOGD(TAG, "del co5300 panel @%p", co5300);
     free(co5300);
 
