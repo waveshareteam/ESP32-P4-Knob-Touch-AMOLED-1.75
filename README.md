@@ -72,7 +72,7 @@ The repository provides source projects. Build a peripheral example or the ESP-B
 
 | Framework | Configured version | Examples |
 | --- | --- | ---: |
-| ESP-IDF examples | `v5.5.6`, `v6.1` | 16 |
+| ESP-IDF examples | `v6.1` | 16 |
 | ESP-IDF factory application | `v6.1` | 1 |
 
 The target is `esp32p4`; the framework configuration is maintained in [product.json](.github/product.json).
