@@ -4,7 +4,7 @@
 
 ## What It Does
 
-Reads the ESP32-P4 flash, PSRAM, and internal-heap capacity information. It does not initialize the display or external peripherals.
+Reads the ESP32-P4 flash, PSRAM, and internal-heap capacity information after preparing the Board Manager tables. It does not initialize the display or external peripherals.
 
 ## Hardware Required
 

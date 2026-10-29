@@ -7,10 +7,11 @@
 #include "freertos/FreeRTOS.h"
 #include "freertos/queue.h"
 #include "freertos/task.h"
+#include "esp_check.h"
 #include "esp_err.h"
 #include "esp_log.h"
 #include "esp_timer.h"
-#include "bsp/esp32_p4_knob_touch_amoled_1_75.h"
+#include "knob_board.h"
 #include "dsps_fft2r.h"
 #include "dsps_wind.h"
 #include "lvgl.h"
@@ -66,19 +67,6 @@ static float s_bar_smooth[BAR_COUNT];
 static uint32_t s_queue_overruns;
 static uint32_t s_read_errors;
 static bool s_ui_ready;
-
-static void pa_off(void)
-{
-    gpio_config_t io_conf = {
-        .pin_bit_mask = 1ULL << BSP_POWER_AMP_IO,
-        .mode = GPIO_MODE_OUTPUT,
-        .pull_up_en = GPIO_PULLUP_DISABLE,
-        .pull_down_en = GPIO_PULLDOWN_DISABLE,
-        .intr_type = GPIO_INTR_DISABLE,
-    };
-    (void)gpio_config(&io_conf);
-    (void)gpio_set_level(BSP_POWER_AMP_IO, 0);
-}
 
 static float clampf_local(float value, float lo, float hi)
 {
@@ -286,7 +274,7 @@ static void ui_update(const spectrum_frame_t *frame)
     }
 
     if (frame->audio_ready) {
-        lv_label_set_text_fmt(s_ui.status, "Sampling: ES8389 input  Frame %lu", (unsigned long)frame->frame_index);
+        lv_label_set_text_fmt(s_ui.status, "Sampling: ES7210 input  Frame %lu", (unsigned long)frame->frame_index);
     } else {
         lv_label_set_text_fmt(s_ui.status, "Sampling error: %s", esp_err_to_name(frame->last_error));
     }
@@ -311,7 +299,7 @@ static void ui_show_error(const char *stage, esp_err_t err)
     if (!s_ui_ready) {
         return;
     }
-    if (!bsp_display_lock(-1)) {
+    if (!knob_board_display_lock(-1)) {
         ESP_LOGE(TAG, "%s FAILED: LVGL lock timeout", stage);
         return;
     }
@@ -323,7 +311,7 @@ static void ui_show_error(const char *stage, esp_err_t err)
         lv_obj_set_pos(s_ui.bars[i], BARS_X + (i * (BAR_W + BAR_GAP)), BARS_Y + BARS_H - 4);
         lv_obj_set_style_bg_color(s_ui.bars[i], lv_color_hex(0x46525a), 0);
     }
-    bsp_display_unlock();
+    knob_board_display_unlock();
 }
 
 static esp_err_t start_audio_pipeline(void)
@@ -339,10 +327,7 @@ static esp_err_t start_audio_pipeline(void)
     }
     dsps_wind_hann_f32(s_hann, FFT_SIZE);
 
-    s_mic = bsp_audio_codec_microphone_init();
-    if (!s_mic) {
-        return ESP_FAIL;
-    }
+    ESP_RETURN_ON_ERROR(knob_board_audio_adc_init(&s_mic), TAG, "ES7210 init failed");
     int codec_ret = esp_codec_dev_set_in_gain(s_mic, 24.0f);
     if (codec_ret != ESP_CODEC_DEV_OK) {
         esp_codec_dev_close(s_mic);
@@ -369,30 +354,32 @@ static esp_err_t start_audio_pipeline(void)
 
 void app_main(void)
 {
-    pa_off();
-
-    s_disp = bsp_display_start();
+    ESP_ERROR_CHECK(knob_board_prepare());
+    knob_board_display_config_t display_config = {
+        .adapter_config = ESP_LV_ADAPTER_DEFAULT_CONFIG(),
+        .rotation = ESP_LV_ADAPTER_ROTATE_0,
+        .tear_avoid_mode = ESP_LV_ADAPTER_TEAR_AVOID_MODE_TRIPLE_PARTIAL,
+        .enable_touch = false,
+    };
+    s_disp = knob_board_display_start(&display_config);
     if (!s_disp) {
         ESP_LOGE(TAG, "LVGL INIT FAILED: %s", esp_err_to_name(ESP_FAIL));
-        pa_off();
         return;
     }
 
-    if (!bsp_display_lock(-1)) {
+    if (!knob_board_display_lock(-1)) {
         ESP_LOGE(TAG, "LVGL UI CREATE FAILED: lock timeout");
-        pa_off();
         return;
     }
     ui_create();
     s_ui_ready = true;
-    bsp_display_unlock();
+    knob_board_display_unlock();
 
     esp_err_t ret = start_audio_pipeline();
     if (ret != ESP_OK) {
-        pa_off();
-        ui_show_error("ES8389 input pipeline", ret);
+        ui_show_error("ES7210 input pipeline", ret);
     } else {
-        ESP_LOGI(TAG, "ES8389 input running at %d Hz, %d-point FFT; output codec disabled", MIC_SAMPLE_RATE_HZ, FFT_SIZE);
+        ESP_LOGI(TAG, "ES7210 input running at %d Hz, %d-point FFT; output codec disabled", MIC_SAMPLE_RATE_HZ, FFT_SIZE);
     }
 
     int64_t next_ui_us = esp_timer_get_time();
@@ -406,9 +393,9 @@ void app_main(void)
                 latest = frame;
                 have_latest = true;
             }
-            if (have_latest && bsp_display_lock(-1)) {
+            if (have_latest && knob_board_display_lock(-1)) {
                 ui_update(&latest);
-                bsp_display_unlock();
+                knob_board_display_unlock();
             }
             next_ui_us = now + ((int64_t)UI_REFRESH_MS * 1000LL);
         }

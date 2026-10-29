@@ -12,12 +12,11 @@
 #include "esp_vfs_fat.h"
 #include "lvgl.h"
 #include "sdmmc_cmd.h"
-#include "bsp/esp32_p4_knob_touch_amoled_1_75.h"
+#include "knob_board.h"
 #include "sdkconfig.h"
 
-#define MOUNT_POINT BSP_SD_MOUNT_POINT
-
 static const char *TAG = "06_sd_card";
+static const char *s_mount_point = "/sdcard";
 
 typedef struct {
     char status[24];
@@ -78,7 +77,7 @@ static void label_set(lv_obj_t *label, const char *caption, const char *value)
 static lv_obj_t *new_line_label(lv_obj_t *parent)
 {
     lv_obj_t *label = lv_label_create(parent);
-    lv_obj_set_width(label, BSP_LCD_H_RES - 32);
+    lv_obj_set_width(label, KNOB_BOARD_LCD_H_RES - 32);
     lv_label_set_long_mode(label, LV_LABEL_LONG_WRAP);
     lv_obj_set_style_text_color(label, lv_color_hex(0x1F2933), 0);
     return label;
@@ -125,13 +124,13 @@ static void ui_task(void *arg)
     (void)arg;
     sd_ui_labels_t labels = {0};
 
-    s_disp = bsp_display_start();
+    s_disp = knob_board_display_start(NULL);
     if (!s_disp) {
         ESP_LOGE(TAG, "LVGL init failed");
         vTaskDelete(NULL);
     }
 
-    if (bsp_display_lock(-1)) {
+    if (knob_board_display_lock(-1)) {
         create_ui(&labels);
         sd_ui_update_t boot = {
             .status = "Starting",
@@ -141,18 +140,18 @@ static void ui_task(void *arg)
             .bus = "4-bit primary",
             .verify = "-",
             .error = "-",
-            .power = "external/unchanged",
+            .power = "LDO4",
         };
         apply_ui_update(&labels, &boot);
-        bsp_display_unlock();
+        knob_board_display_unlock();
     }
 
     while (1) {
         sd_ui_update_t update;
         if (xQueueReceive(s_ui_queue, &update, pdMS_TO_TICKS(20)) == pdTRUE) {
-            if (bsp_display_lock(-1)) {
+            if (knob_board_display_lock(-1)) {
                 apply_ui_update(&labels, &update);
-                bsp_display_unlock();
+                knob_board_display_unlock();
             }
         }
         vTaskDelay(pdMS_TO_TICKS(5));
@@ -197,19 +196,20 @@ static void sd_task(void *arg)
         .bus = "4-bit 40000 kHz",
         .verify = "-",
         .error = "-",
-        .power = "external/unchanged",
+        .power = "LDO4",
     };
     post_update(&ui);
 
     ESP_LOGI(TAG, "START SDMMC test D0..D3=GPIO39..42 CLK=GPIO43 CMD=GPIO44");
-    ESP_LOGI(TAG, "Power control: external/unchanged; GPIO45 is not driven");
+    ESP_LOGI(TAG, "Power control: Board Manager SDMMC LDO4; GPIO45 is not driven");
     ESP_LOGI(TAG, "primary mount width=%d freq=%d kHz", 4, SDMMC_FREQ_HIGHSPEED);
 
     sdmmc_card_t *card = NULL;
     int active_width = 4;
     int active_freq = SDMMC_FREQ_HIGHSPEED;
     snprintf(ui.bus, sizeof(ui.bus), "%d-bit %d kHz", active_width, active_freq);
-    esp_err_t ret = bsp_sdcard_mount();
+    const char *mount_point = NULL;
+    esp_err_t ret = knob_board_sdcard_mount(true, &mount_point);
 
     if (ret != ESP_OK) {
         ESP_LOGE(TAG, "FAIL mount: %s", esp_err_to_name(ret));
@@ -219,7 +219,14 @@ static void sd_task(void *arg)
         vTaskDelete(NULL);
     }
 
-    card = bsp_sdcard;
+    ret = knob_board_sdcard_get_card(&card);
+    if (ret != ESP_OK || !card) {
+        snprintf(ui.status, sizeof(ui.status), "Failed");
+        snprintf(ui.error, sizeof(ui.error), "card handle: %s", esp_err_to_name(ret));
+        post_update(&ui);
+        vTaskDelete(NULL);
+    }
+    s_mount_point = mount_point ? mount_point : s_mount_point;
     sdmmc_card_print_info(stdout, card);
     snprintf(ui.status, sizeof(ui.status), "Mounted");
     snprintf(ui.card_type, sizeof(ui.card_type), "%s", card_type_name(card));
@@ -228,7 +235,7 @@ static void sd_task(void *arg)
 
     uint64_t total_bytes = 0;
     uint64_t free_bytes = 0;
-    ret = esp_vfs_fat_info(MOUNT_POINT, &total_bytes, &free_bytes);
+    ret = esp_vfs_fat_info(s_mount_point, &total_bytes, &free_bytes);
     if (ret == ESP_OK) {
         format_mib(free_bytes, ui.free_space, sizeof(ui.free_space));
     } else {
@@ -241,7 +248,7 @@ static void sd_task(void *arg)
     post_update(&ui);
 
     char path[96] = {0};
-    snprintf(path, sizeof(path), MOUNT_POINT "/sd06_%08lx_%08lx.txt",
+    snprintf(path, sizeof(path), "%s/sd06_%08lx_%08lx.txt", s_mount_point,
              (unsigned long)esp_random(), (unsigned long)xTaskGetTickCount());
     ret = write_read_verify(path);
     bool verified = (ret == ESP_OK);
@@ -266,7 +273,7 @@ static void sd_task(void *arg)
         }
     }
 
-    ret = bsp_sdcard_unmount();
+    ret = knob_board_sdcard_unmount();
     if (ret == ESP_OK) {
         bool passed = verified && delete_ok;
         ESP_LOGI(TAG, "unmounted SD card");
@@ -285,6 +292,7 @@ static void sd_task(void *arg)
 
 void app_main(void)
 {
+    ESP_ERROR_CHECK(knob_board_prepare());
     s_ui_queue = xQueueCreate(1, sizeof(sd_ui_update_t));
     if (!s_ui_queue) {
         ESP_LOGE(TAG, "FAIL create UI queue");

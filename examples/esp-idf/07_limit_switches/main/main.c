@@ -7,18 +7,19 @@
 #include "driver/gpio.h"
 #include "driver/pulse_cnt.h"
 #include "esp_attr.h"
+#include "esp_board_manager.h"
+#include "esp_board_periph.h"
 #include "esp_err.h"
+#include "esp_check.h"
 #include "esp_log.h"
 #include "esp_system.h"
 #include "esp_timer.h"
 #include "lvgl.h"
-#include "bsp/esp32_p4_knob_touch_amoled_1_75.h"
+#include "knob_board.h"
+#include "periph_gpio.h"
 #include "sdkconfig.h"
 
 static const char *TAG = "07_limit_switches";
-
-#define LIMIT_SWITCH_1_GPIO GPIO_NUM_20
-#define LIMIT_SWITCH_2_GPIO GPIO_NUM_21
 
 #define LIMIT_SWITCHES_DISPLAY_ENABLED true
 #if CONFIG_LIMIT_SWITCHES_BIAS_PULLUP
@@ -67,6 +68,9 @@ typedef struct {
     switch_state_t *switches;
     size_t count;
 } ui_context_t;
+
+static int s_switch_1_gpio = -1;
+static int s_switch_2_gpio = -1;
 
 #if !CONFIG_LIMIT_SWITCHES_MODE_INPUT_ONLY
 static lv_display_t *g_disp;
@@ -222,26 +226,31 @@ static void create_ui(switch_state_t switches[], size_t count)
 }
 #endif
 
-static esp_err_t switch_gpio_input(gpio_num_t gpio, bool pullup, bool pulldown)
+static esp_err_t switch_configure_board_gpio(const char *name, int *gpio_num)
 {
-    gpio_config_t cfg = {
-        .pin_bit_mask = 1ULL << gpio,
-        .mode = GPIO_MODE_INPUT,
-        .pull_up_en = pullup ? GPIO_PULLUP_ENABLE : GPIO_PULLUP_DISABLE,
-        .pull_down_en = pulldown ? GPIO_PULLDOWN_ENABLE : GPIO_PULLDOWN_DISABLE,
-        .intr_type = GPIO_INTR_DISABLE,
-    };
-    return gpio_config(&cfg);
+    periph_gpio_config_t *board_config = NULL;
+    ESP_RETURN_ON_ERROR(esp_board_manager_get_periph_config(name, (void **)&board_config), TAG,
+                        "read %s configuration", name);
+    ESP_RETURN_ON_FALSE(board_config, ESP_ERR_INVALID_STATE, TAG, "%s configuration missing", name);
+
+    periph_gpio_config_t config = *board_config;
+    config.gpio_config.mode = GPIO_MODE_INPUT;
+    config.gpio_config.pull_up_en = SWITCH_PULLUP ? GPIO_PULLUP_ENABLE : GPIO_PULLUP_DISABLE;
+    config.gpio_config.pull_down_en = SWITCH_PULLDOWN ? GPIO_PULLDOWN_ENABLE : GPIO_PULLDOWN_DISABLE;
+#if CONFIG_LIMIT_SWITCHES_MODE_GPIO_IRQ
+    config.gpio_config.intr_type = GPIO_INTR_ANYEDGE;
+#else
+    config.gpio_config.intr_type = GPIO_INTR_DISABLE;
+#endif
+    ESP_RETURN_ON_ERROR(esp_board_periph_override_config(name, &config, sizeof(config)), TAG,
+                        "override %s configuration", name);
+    return knob_board_gpio_init(name, gpio_num);
 }
 
 #if CONFIG_LIMIT_SWITCHES_MODE_PCNT
 static esp_err_t switch_init(switch_state_t *sw)
 {
-    esp_err_t ret = switch_gpio_input(sw->gpio, SWITCH_PULLUP, SWITCH_PULLDOWN);
-    if (ret != ESP_OK) {
-        ESP_LOGE(TAG, "FAIL configure %s GPIO%d: %s", sw->name, sw->gpio, esp_err_to_name(ret));
-        return ret;
-    }
+    esp_err_t ret;
 
     pcnt_unit_config_t unit_cfg = {
         .low_limit = -1,
@@ -437,18 +446,8 @@ static void switch_arm_settle_timer(uint32_t wait_us)
 static void run_gpio_irq_test(switch_state_t switches[], size_t count)
 {
     for (size_t i = 0; i < count; ++i) {
-        esp_err_t ret = switch_gpio_input(switches[i].gpio, SWITCH_PULLUP, SWITCH_PULLDOWN);
-        if (ret != ESP_OK) {
-            ESP_LOGE(TAG, "FAIL configure GPIO%d: %s", switches[i].gpio, esp_err_to_name(ret));
-            fail_idle();
-        }
         switches[i].stable_level = gpio_get_level(switches[i].gpio);
         switches[i].pressed = switches[i].stable_level == 0;
-        ret = gpio_set_intr_type(switches[i].gpio, GPIO_INTR_ANYEDGE);
-        if (ret != ESP_OK) {
-            ESP_LOGE(TAG, "FAIL configure GPIO%d interrupt: %s", switches[i].gpio, esp_err_to_name(ret));
-            fail_idle();
-        }
     }
 
     start_display(switches, count);
@@ -507,45 +506,32 @@ static void start_display(switch_state_t switches[], size_t count)
     g_ui_context.switches = switches;
     g_ui_context.count = count;
 
-    bsp_display_cfg_t cfg = {
-        .lv_adapter_cfg = ESP_LV_ADAPTER_DEFAULT_CONFIG(),
+    knob_board_display_config_t cfg = {
+        .adapter_config = ESP_LV_ADAPTER_DEFAULT_CONFIG(),
         .rotation = ESP_LV_ADAPTER_ROTATE_0,
         .tear_avoid_mode = ESP_LV_ADAPTER_TEAR_AVOID_MODE_TRIPLE_PARTIAL,
-        .touch_flags = {
-            .swap_xy = 0,
-            .mirror_x = 1,
-            .mirror_y = 1,
-        },
+        .enable_touch = false,
     };
-    cfg.lv_adapter_cfg.task_stack_size = 16 * 1024;
-    cfg.lv_adapter_cfg.task_priority = 10;
-    cfg.lv_adapter_cfg.task_core_id = 0;
-    cfg.lv_adapter_cfg.tick_period_ms = LVGL_TICK_PERIOD_MS;
-    cfg.lv_adapter_cfg.task_min_delay_ms = LVGL_TASK_MIN_DELAY_MS;
-    cfg.lv_adapter_cfg.task_max_delay_ms = LVGL_TASK_MAX_DELAY_MS;
-    cfg.lv_adapter_cfg.stack_in_psram = false;
+    cfg.adapter_config.task_stack_size = 16 * 1024;
+    cfg.adapter_config.task_priority = 10;
+    cfg.adapter_config.task_core_id = 0;
+    cfg.adapter_config.tick_period_ms = LVGL_TICK_PERIOD_MS;
+    cfg.adapter_config.task_min_delay_ms = LVGL_TASK_MIN_DELAY_MS;
+    cfg.adapter_config.task_max_delay_ms = LVGL_TASK_MAX_DELAY_MS;
+    cfg.adapter_config.stack_in_psram = false;
 
-    g_disp = bsp_display_start_with_config(&cfg);
+    g_disp = knob_board_display_start(&cfg);
     if (g_disp == NULL) {
         ESP_LOGE(TAG, "FAIL LVGL init");
         fail_idle();
     }
 
-    lv_indev_t *touch_indev = bsp_display_get_input_dev();
-    if (touch_indev != NULL) {
-        esp_err_t ret = esp_lv_adapter_unregister_touch(touch_indev);
-        if (ret != ESP_OK) {
-            ESP_LOGE(TAG, "FAIL unregister unused touch input: %s", esp_err_to_name(ret));
-            fail_idle();
-        }
-    }
-
     lv_timer_t *ui_refresh_timer;
-    bsp_display_lock(-1);
+    knob_board_display_lock(-1);
     create_ui(switches, count);
     ui_refresh_timer = lv_timer_create(ui_refresh_timer_cb, DISPLAY_REFRESH_INTERVAL_MS,
                                        &g_ui_context);
-    bsp_display_unlock();
+    knob_board_display_unlock();
 
     if (ui_refresh_timer == NULL) {
         ESP_LOGE(TAG, "FAIL create UI refresh timer");
@@ -555,31 +541,19 @@ static void start_display(switch_state_t switches[], size_t count)
     ESP_LOGW(TAG,
              "UI mode=dynamic core=0 touch=0 refresh=%d ms tick=%d ms "
              "worker_delay=%d..%d ms stack=internal systimer_level=%d "
-             "runtime_bsp_lock=0 full_panel_redraw=0",
+             "runtime_board_manager=1 full_panel_redraw=0",
              DISPLAY_REFRESH_INTERVAL_MS, LVGL_TICK_PERIOD_MS,
              LVGL_TASK_MIN_DELAY_MS, LVGL_TASK_MAX_DELAY_MS, FREERTOS_SYSTIMER_LEVEL);
-}
-#endif
-
-#if CONFIG_LIMIT_SWITCHES_MODE_INPUT_ONLY || CONFIG_LIMIT_SWITCHES_MODE_POLLING
-static esp_err_t configure_switch_input_gpio(gpio_num_t gpio)
-{
-    return switch_gpio_input(gpio, SWITCH_PULLUP, SWITCH_PULLDOWN);
 }
 #endif
 
 #if defined(CONFIG_LIMIT_SWITCHES_MODE_INPUT_ONLY)
 static void run_input_only_test(void)
 {
-    const gpio_num_t gpios[] = {LIMIT_SWITCH_1_GPIO, LIMIT_SWITCH_2_GPIO};
+    const gpio_num_t gpios[] = {s_switch_1_gpio, s_switch_2_gpio};
 
     for (size_t i = 0; i < sizeof(gpios) / sizeof(gpios[0]); ++i) {
-        esp_err_t ret = configure_switch_input_gpio(gpios[i]);
-        if (ret != ESP_OK) {
-            ESP_LOGE(TAG, "FAIL configure input-only GPIO%d: %s",
-                     gpios[i], esp_err_to_name(ret));
-            fail_idle();
-        }
+        ESP_LOGI(TAG, "Board Manager configured input-only GPIO%d", gpios[i]);
     }
 
     ESP_LOGW(TAG, "INPUT-ONLY TEST: GPIO20/GPIO21 inputs enabled, pullup=%d pulldown=%d",
@@ -599,12 +573,6 @@ static void run_input_only_test(void)
 static void run_gpio_polling_test(switch_state_t switches[], size_t count)
 {
     for (size_t i = 0; i < count; ++i) {
-        esp_err_t ret = configure_switch_input_gpio(switches[i].gpio);
-        if (ret != ESP_OK) {
-            ESP_LOGE(TAG, "FAIL configure polling GPIO%d: %s",
-                     switches[i].gpio, esp_err_to_name(ret));
-            fail_idle();
-        }
         switches[i].stable_level = gpio_get_level(switches[i].gpio);
         switches[i].raw_level = switches[i].stable_level;
         switches[i].raw_level_since_ms = now_ms();
@@ -664,10 +632,13 @@ static void run_gpio_polling_test(switch_state_t switches[], size_t count)
 
 void app_main(void)
 {
+    ESP_ERROR_CHECK(knob_board_prepare());
+    ESP_ERROR_CHECK(switch_configure_board_gpio(KNOB_BOARD_PERIPH_KNOB_CW, &s_switch_1_gpio));
+    ESP_ERROR_CHECK(switch_configure_board_gpio(KNOB_BOARD_PERIPH_KNOB_CCW, &s_switch_2_gpio));
 #if !defined(CONFIG_LIMIT_SWITCHES_MODE_INPUT_ONLY)
     switch_state_t switches[] = {
-        {.name = "Switch 1", .gpio = LIMIT_SWITCH_1_GPIO},
-        {.name = "Switch 2", .gpio = LIMIT_SWITCH_2_GPIO},
+        {.name = "Switch 1", .gpio = s_switch_1_gpio},
+        {.name = "Switch 2", .gpio = s_switch_2_gpio},
     };
 #endif
 

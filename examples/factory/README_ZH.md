@@ -30,7 +30,7 @@
 idf.py set-target esp32p4 build flash monitor
 ```
 
-如果分区表有改动，请用 `idf.py flash` 写入全部分区。
+如需在本地固件中预装音乐，请将自有或已获授权的 MP3 放到 `spiffs/music/`；这些文件被 Git 忽略，不包含在 CI 固件中。
 
 ## 预期现象
 
@@ -38,4 +38,4 @@ idf.py set-target esp32p4 build flash monitor
 
 ## 常见问题
 
-如果缺少板卡生成文件，先运行一次 `idf.py bmgr -b esp32_p4_knob_touch_amoled_1_75` 再编译。请保留本工程的 `spiffs` 目录，启动时会挂载它。
+CMake 会自动生成板配置表；若已安装 `esp-bmgr-assist`，请设置 `ESP_BOARD_MANAGER_SKIP_GEN_CHECK=1` 后构建，以使用这些配置表。请保留本工程的 `spiffs` 目录，启动时会挂载它。

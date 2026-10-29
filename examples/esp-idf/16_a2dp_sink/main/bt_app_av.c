@@ -14,9 +14,10 @@
 #include "esp_timer.h"
   
 #include "bt_app_core.h"  
-#include "bt_app_av.h"  
+#include "bt_app_av.h"
+#include "driver/i2s_std.h"
 #include "audio_mono_mix.h"
-#include "bsp_board_extra.h"  
+#include "knob_board.h"
 #include "esp_bt_main.h"  
 #include "esp_bt_device.h"  
 #include "esp_gap_bt_api.h"  
@@ -45,8 +46,6 @@
 static const char *TAG_VOL_BTN = "ROTARY_VOLUME";  
   
 /* 行程开关 GPIO */  
-#define BTN_INC_GPIO          20   /* 顺时针 -> 音量增加 */  
-#define BTN_DEC_GPIO          21   /* 逆时针 -> 音量减小 */  
 #define BUTTON_SETTLE_US        2000
 #define BUTTON_TASK_STACK_SIZE  3072
 #define BUTTON_TASK_PRIORITY    4
@@ -138,10 +137,11 @@ typedef struct {
 static TaskHandle_t s_button_task;
 static portMUX_TYPE s_button_lock = portMUX_INITIALIZER_UNLOCKED;
 static button_pin_t s_button_pins[] = {
-    {.gpio = BTN_INC_GPIO, .delta = +VOLUME_STEP},
-    {.gpio = BTN_DEC_GPIO, .delta = -VOLUME_STEP},
+    {.delta = +VOLUME_STEP},
+    {.delta = -VOLUME_STEP},
 };
 static bool s_codec_ready;  
+static esp_codec_dev_handle_t s_audio_codec;
 static uint32_t s_audio_sample_rate = 44100;
 static i2s_slot_mode_t s_audio_channel_mode = I2S_SLOT_MODE_STEREO;
   
@@ -259,7 +259,7 @@ static void bt_av_notify_evt_handler(uint8_t event_id, esp_avrc_rn_param_t *even
   
 static esp_err_t bt_i2s_driver_install(void)  
 {  
-    esp_err_t ret = bsp_extra_codec_init();
+    esp_err_t ret = knob_board_audio_dac_init(&s_audio_codec);
     if (ret != ESP_OK) {
         ESP_LOGE(BT_AV_TAG, "Codec init failed: %s", esp_err_to_name(ret));
         return ret;
@@ -280,12 +280,12 @@ static esp_err_t bt_i2s_driver_install(void)
 
     bt_i2s_set_pcm_volume(volume);
 
-    ret = bsp_extra_codec_volume_set(CODEC_FIXED_OUTPUT_VOLUME, NULL);
+    ret = knob_board_audio_set_volume(s_audio_codec, CODEC_FIXED_OUTPUT_VOLUME);
     if (ret != ESP_OK) {
         ESP_LOGW(BT_AV_TAG, "Codec fixed volume set failed: %s", esp_err_to_name(ret));
     }
 
-    ret = bsp_extra_codec_mute_set(true);
+    ret = knob_board_audio_set_mute(s_audio_codec, true);
     if (ret != ESP_OK) {
         ESP_LOGW(BT_AV_TAG, "Codec initial mute failed: %s", esp_err_to_name(ret));
     }
@@ -312,7 +312,13 @@ static esp_err_t bt_i2s_apply_audio_cfg(void)
              (s_audio_channel_mode == I2S_SLOT_MODE_MONO) ? "mono" : "stereo");
     ESP_LOGI(BT_AV_TAG, "Stereo output mix mode: %s", downmix_enabled ? audio_mono_mix_mode_name() : "disabled");
     bt_i2s_set_stereo_downmix_enabled(downmix_enabled);
-    return bsp_extra_codec_set_fs(s_audio_sample_rate, 16, s_audio_channel_mode);
+    esp_codec_dev_sample_info_t format = {
+        .sample_rate = s_audio_sample_rate,
+        .channel = s_audio_channel_mode,
+        .bits_per_sample = 16,
+    };
+    (void)knob_board_audio_close(s_audio_codec);
+    return knob_board_audio_open(s_audio_codec, &format);
 }
 
 static void bt_i2s_sync_mute_state(void)
@@ -322,7 +328,7 @@ static void bt_i2s_sync_mute_state(void)
     }
 
     bool mute = (s_audio_state != ESP_A2D_AUDIO_STATE_STARTED);
-    esp_err_t ret = bsp_extra_codec_mute_set(mute);
+    esp_err_t ret = knob_board_audio_set_mute(s_audio_codec, mute);
     if (ret != ESP_OK) {
         ESP_LOGW(BT_AV_TAG, "Codec %s failed: %s", mute ? "mute" : "unmute", esp_err_to_name(ret));
     }
@@ -331,7 +337,7 @@ static void bt_i2s_sync_mute_state(void)
 static void bt_i2s_driver_uninstall(void)  
 {  
     if (s_codec_ready) {
-        ESP_ERROR_CHECK(bsp_extra_codec_dev_stop());  
+        ESP_ERROR_CHECK(knob_board_audio_close(s_audio_codec));
         s_codec_ready = false;
     }
 }  
@@ -939,14 +945,12 @@ static void IRAM_ATTR button_edge_isr(void *arg)
 
 static void button_init(void)
 {
-    const gpio_config_t gpio_cfg = {
-        .pin_bit_mask = (1ULL << BTN_INC_GPIO) | (1ULL << BTN_DEC_GPIO),
-        .mode = GPIO_MODE_INPUT,
-        .pull_up_en = GPIO_PULLUP_ENABLE,
-        .pull_down_en = GPIO_PULLDOWN_DISABLE,
-        .intr_type = GPIO_INTR_ANYEDGE,
-    };
-    ESP_ERROR_CHECK(gpio_config(&gpio_cfg));
+    int clockwise_gpio;
+    int counterclockwise_gpio;
+    ESP_ERROR_CHECK(knob_board_gpio_init(KNOB_BOARD_PERIPH_KNOB_CW, &clockwise_gpio));
+    ESP_ERROR_CHECK(knob_board_gpio_init(KNOB_BOARD_PERIPH_KNOB_CCW, &counterclockwise_gpio));
+    s_button_pins[0].gpio = (gpio_num_t)clockwise_gpio;
+    s_button_pins[1].gpio = (gpio_num_t)counterclockwise_gpio;
 
     for (size_t i = 0; i < sizeof(s_button_pins) / sizeof(s_button_pins[0]); ++i) {
         s_button_pins[i].pressed = gpio_get_level(s_button_pins[i].gpio) == 0;
@@ -971,7 +975,12 @@ static void button_init(void)
 
     ESP_LOGI(TAG_VOL_BTN,
              "GPIO%d = Volume +, GPIO%d = Volume -, any-edge settle=%d us, pullup=on",
-             BTN_INC_GPIO, BTN_DEC_GPIO, BUTTON_SETTLE_US);
+             s_button_pins[0].gpio, s_button_pins[1].gpio, BUTTON_SETTLE_US);
+}
+
+esp_err_t bt_i2s_write_pcm(const void *data, size_t len, size_t *bytes_written)
+{
+    return knob_board_audio_write(s_audio_codec, data, len, bytes_written);
 }
   
 /********************************  

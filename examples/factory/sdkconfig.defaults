@@ -134,3 +134,5 @@ CONFIG_XIAOZHI_INFO_TIMEOUT_MS=8000
 # The clock comes from SNTP and the RTC in UTC with the time zone applied on top; the server time
 # esp_xiaozhi would set has the time zone added already, which put the clock 8 hours ahead
 CONFIG_XIAOZHI_SYNC_SYSTEM_TIME_FROM_SERVER=n
+
+CONFIG_ESP_BOARD_DEV_CUSTOM_SUPPORT=y

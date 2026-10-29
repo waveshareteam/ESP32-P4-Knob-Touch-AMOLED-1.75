@@ -11,7 +11,7 @@
 #include "esp_check.h"
 #include "esp_codec_dev.h"
 #include "esp_log.h"
-#include "bsp/esp32_p4_knob_touch_amoled_1_75.h"
+#include "knob_board.h"
 
 #define SAMPLE_RATE_HZ      16000
 #define CHANNEL_COUNT       2
@@ -68,9 +68,10 @@ static esp_err_t play_tone(esp_codec_dev_handle_t speaker)
 
 void app_main(void)
 {
-    esp_codec_dev_handle_t speaker = bsp_audio_codec_speaker_init();
-    if (speaker == NULL) {
-        ESP_LOGE(TAG, "speaker codec initialization failed");
+    esp_codec_dev_handle_t speaker = NULL;
+    ESP_ERROR_CHECK(knob_board_prepare());
+    if (knob_board_audio_dac_init(&speaker) != ESP_OK || speaker == NULL) {
+        ESP_LOGE(TAG, "Board Manager speaker codec initialization failed");
         return;
     }
 

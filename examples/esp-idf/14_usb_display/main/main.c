@@ -18,11 +18,11 @@
 #include "esp_private/usb_phy.h"
 #include "tusb.h"
 #include "lvgl.h"
-#include "bsp/esp32_p4_knob_touch_amoled_1_75.h"
+#include "knob_board.h"
 #include "usb_descriptors.h"
 
-#define SCREEN_WIDTH            BSP_LCD_H_RES
-#define SCREEN_HEIGHT           BSP_LCD_V_RES
+#define SCREEN_WIDTH            KNOB_BOARD_LCD_H_RES
+#define SCREEN_HEIGHT           KNOB_BOARD_LCD_V_RES
 #define FRAME_LIMIT             (300 * 1024)
 #define JPEG_MCU_SIZE           16
 #define USB_RHPORT_HS           1
@@ -333,7 +333,7 @@ static esp_err_t render_frame(void)
         .scale_y = 1.0f,
         .mode = PPA_TRANS_MODE_BLOCKING,
     };
-    ESP_RETURN_ON_FALSE(bsp_display_lock(-1), ESP_ERR_TIMEOUT, TAG, "Display lock failed");
+    ESP_RETURN_ON_FALSE(knob_board_display_lock(-1), ESP_ERR_TIMEOUT, TAG, "Display lock failed");
     esp_err_t ret = ppa_do_scale_rotate_mirror(s_ppa, &copy);
     if (ret == ESP_OK) {
         ret = esp_cache_msync(s_canvas_buffer, CANVAS_BUFFER_SIZE,
@@ -342,7 +342,7 @@ static esp_err_t render_frame(void)
     if (ret == ESP_OK) {
         lv_obj_invalidate(s_canvas);
     }
-    bsp_display_unlock();
+    knob_board_display_unlock();
     ESP_RETURN_ON_ERROR(ret, TAG, "Render JPEG frame failed");
     return ret;
 }
@@ -460,12 +460,19 @@ void app_main(void)
     ESP_ERROR_CHECK(jpeg_new_decoder_engine(&jpeg_cfg, &s_jpeg));
     ESP_ERROR_CHECK(ppa_register_client(&ppa_cfg, &s_ppa));
 
-    lv_display_t *display = bsp_display_start();
+    ESP_ERROR_CHECK(knob_board_prepare());
+    knob_board_display_config_t display_config = {
+        .adapter_config = ESP_LV_ADAPTER_DEFAULT_CONFIG(),
+        .rotation = ESP_LV_ADAPTER_ROTATE_0,
+        .tear_avoid_mode = ESP_LV_ADAPTER_TEAR_AVOID_MODE_TRIPLE_PARTIAL,
+        .enable_touch = true,
+    };
+    lv_display_t *display = knob_board_display_start(&display_config);
     if (!display) {
         ESP_LOGE(TAG, "Display init failed");
         return;
     }
-    if (!bsp_display_lock(-1)) {
+    if (!knob_board_display_lock(-1)) {
         ESP_LOGE(TAG, "Display lock failed");
         return;
     }
@@ -480,7 +487,7 @@ void app_main(void)
     lv_obj_add_event_cb(s_canvas, touch_event_cb, LV_EVENT_PRESSED, NULL);
     lv_obj_add_event_cb(s_canvas, touch_event_cb, LV_EVENT_PRESSING, NULL);
     lv_obj_add_event_cb(s_canvas, touch_event_cb, LV_EVENT_RELEASED, NULL);
-    bsp_display_unlock();
+    knob_board_display_unlock();
 
     ESP_ERROR_CHECK(xTaskCreate(frame_task, "usb_frame", 6144, NULL, 6, NULL) == pdPASS ? ESP_OK : ESP_ERR_NO_MEM);
     ESP_ERROR_CHECK(start_usb_device());

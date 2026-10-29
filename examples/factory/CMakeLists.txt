@@ -4,9 +4,11 @@
 # CMakeLists in this exact order for cmake to work correctly
 cmake_minimum_required(VERSION 3.5)
 
-# Board hardware defaults come first so this example's sdkconfig.defaults can override them.
+# All projects use the same Board Manager hardware definition.
+set(FACTORY_BOARD_COMPONENT_DIR "${CMAKE_CURRENT_LIST_DIR}/../esp-idf/common/waveshare_boards")
+list(APPEND EXTRA_COMPONENT_DIRS "${FACTORY_BOARD_COMPONENT_DIR}")
 set(SDKCONFIG_DEFAULTS
-    "${CMAKE_CURRENT_LIST_DIR}/components/waveshare_boards/boards/esp32_p4_knob_touch_amoled_1_75/sdkconfig.defaults.board"
+    "${FACTORY_BOARD_COMPONENT_DIR}/boards/esp32_p4_knob_touch_amoled_1_75/sdkconfig.defaults.board"
     "${CMAKE_CURRENT_LIST_DIR}/sdkconfig.defaults"
 )
 

@@ -3,7 +3,8 @@ file(GLOB_RECURSE LV_DEMOS_SOURCES ${LV_DEMO_DIR}/*.c)
 
 idf_component_register(
     SRCS main.c ${LV_DEMOS_SOURCES}
-    INCLUDE_DIRS . ${LV_DEMO_DIR})
+    INCLUDE_DIRS . ${LV_DEMO_DIR}
+    REQUIRES knob_board)
 
 idf_component_get_property(LVGL_LIB lvgl__lvgl COMPONENT_LIB)
 target_compile_options(

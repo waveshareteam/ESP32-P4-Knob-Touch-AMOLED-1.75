@@ -4,7 +4,7 @@
 
 ## 功能
 
-使用板级 BSP 和显示、触摸配置，在 AMOLED 屏幕上运行 LVGL 性能测试示例。
+使用 Board Manager 管理的显示和触摸设备，在 AMOLED 屏幕上运行 LVGL 性能测试示例。
 
 ## 硬件需求
 

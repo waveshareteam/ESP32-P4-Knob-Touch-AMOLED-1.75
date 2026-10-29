@@ -10,7 +10,7 @@
 #include "esp_err.h"
 #include "esp_log.h"
 #include "lvgl.h"
-#include "bsp/esp32_p4_knob_touch_amoled_1_75.h"
+#include "knob_board.h"
 
 static const char *TAG = "05_axp2101";
 
@@ -110,8 +110,7 @@ static void close_i2c(i2c_master_bus_handle_t *bus, i2c_master_dev_handle_t *dev
 
 static esp_err_t open_i2c(i2c_master_bus_handle_t *bus, i2c_master_dev_handle_t *dev)
 {
-    ESP_RETURN_ON_ERROR(bsp_i2c_init(), TAG, "acquire I2C");
-    *bus = bsp_i2c_get_handle();
+    ESP_RETURN_ON_ERROR(knob_board_i2c_init(bus), TAG, "acquire Board Manager I2C");
     esp_err_t ret = i2c_master_probe(*bus, AXP2101_ADDR_7BIT, 100);
     if (ret != ESP_OK) {
         close_i2c(bus, dev);
@@ -341,6 +340,7 @@ static void fail_idle(void)
 void app_main(void)
 {
     ESP_LOGI(TAG, "START AXP2101 read-only LVGL status test");
+    ESP_ERROR_CHECK(knob_board_prepare());
 
     g_sample_queue = xQueueCreate(1, sizeof(pmu_sample_t));
     if (!g_sample_queue) {
@@ -348,14 +348,14 @@ void app_main(void)
         fail_idle();
     }
 
-    g_disp = bsp_display_start();
+    g_disp = knob_board_display_start(NULL);
     if (!g_disp) {
         ESP_LOGE(TAG, "FAIL LVGL init");
         fail_idle();
     }
-    if (bsp_display_lock(-1)) {
+    if (knob_board_display_lock(-1)) {
         create_ui();
-        bsp_display_unlock();
+        knob_board_display_unlock();
     }
 
     xTaskCreate(pmu_task, "axp2101_sample", 4096, NULL, 5, NULL);
@@ -363,9 +363,9 @@ void app_main(void)
     while (true) {
         pmu_sample_t sample;
         if (xQueueReceive(g_sample_queue, &sample, 0) == pdTRUE) {
-            if (bsp_display_lock(-1)) {
+            if (knob_board_display_lock(-1)) {
                 update_ui(&sample);
-                bsp_display_unlock();
+                knob_board_display_unlock();
             }
         }
         vTaskDelay(pdMS_TO_TICKS(5));

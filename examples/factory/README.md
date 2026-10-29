@@ -30,7 +30,7 @@ Use the factory ESP-IDF version listed in the [repository README](../../README.m
 idf.py set-target esp32p4 build flash monitor
 ```
 
-If the partition table changes, use `idf.py flash` so every partition is updated.
+For built-in music in a local firmware, place your own or licensed MP3s in `spiffs/music/`; these Git-ignored assets are not included in CI firmware images.
 
 ## Expected Result
 
@@ -38,4 +38,4 @@ The display opens the Brookesia launcher and its status bar. Open an application
 
 ## Troubleshooting
 
-If board artifacts are missing, run `idf.py bmgr -b esp32_p4_knob_touch_amoled_1_75` once and build again. Keep this project's `spiffs` directory because it is mounted at startup.
+CMake generates the board tables automatically; if `esp-bmgr-assist` is installed, build with `ESP_BOARD_MANAGER_SKIP_GEN_CHECK=1` to use those tables. Keep this project's `spiffs` directory because it is mounted at startup.

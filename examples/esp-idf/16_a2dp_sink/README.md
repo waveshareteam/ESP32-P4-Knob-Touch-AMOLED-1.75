@@ -4,7 +4,7 @@
 
 ## What It Does
 
-Initializes the external-connectivity transport and exposes a discoverable Bluetooth A2DP sink. Incoming audio is sent to the board codec, while the AMOLED UI shows the received title and lyrics text when provided.
+Uses Board Manager to initialize the wireless, display, codec and rotary resources before exposing a discoverable Bluetooth A2DP sink. Incoming audio is sent to the board codec while the AMOLED UI shows received title and lyrics text.
 
 ## Hardware Required
 

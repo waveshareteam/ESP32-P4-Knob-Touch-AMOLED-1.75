@@ -6,15 +6,14 @@
 #include "esp_err.h"
 #include "esp_log.h"
 #include "lvgl.h"
-#include "bsp/esp32_p4_knob_touch_amoled_1_75.h"
+#include "knob_board.h"
 #include "sdkconfig.h"
 
 static const char *TAG = "11_display_touch";
 static const int DOT_SIZE = 12;
 
-#define BOARD_BOOT_GPIO GPIO_NUM_35
-
 static lv_display_t *s_disp;
+static int s_boot_gpio;
 static lv_obj_t *s_count_label;
 static lv_obj_t *s_dots[CONFIG_DISPLAY11_DOT_MAX];
 static uint32_t s_dot_count;
@@ -22,21 +21,9 @@ static uint32_t s_dot_count;
 static volatile bool s_color_stage_active;
 static volatile bool s_color_advance_requested;
 
-static esp_err_t board_gpio_input(gpio_num_t gpio, bool pullup)
-{
-    gpio_config_t config = {
-        .pin_bit_mask = 1ULL << gpio,
-        .mode = GPIO_MODE_INPUT,
-        .pull_up_en = pullup ? GPIO_PULLUP_ENABLE : GPIO_PULLUP_DISABLE,
-        .pull_down_en = GPIO_PULLDOWN_DISABLE,
-        .intr_type = GPIO_INTR_DISABLE,
-    };
-    return gpio_config(&config);
-}
-
 static bool boot_pressed(void)
 {
-    return gpio_get_level(BOARD_BOOT_GPIO) == 0;
+    return gpio_get_level(s_boot_gpio) == 0;
 }
 
 static void color_stage_event_cb(lv_event_t *event)
@@ -67,7 +54,7 @@ static void wait_color_stage(const char *name)
 static esp_err_t lvgl_color_stage(const char *name, lv_color_t color)
 {
     ESP_LOGI(TAG, "LVGL full-screen %s", name);
-    if (!bsp_display_lock(-1)) {
+    if (!knob_board_display_lock(-1)) {
         return ESP_ERR_TIMEOUT;
     }
     lv_obj_t *scr = lv_screen_active();
@@ -77,7 +64,7 @@ static esp_err_t lvgl_color_stage(const char *name, lv_color_t color)
     lv_obj_add_flag(scr, LV_OBJ_FLAG_CLICKABLE);
     lv_obj_add_event_cb(scr, color_stage_event_cb, LV_EVENT_PRESSED, NULL);
     lv_obj_add_event_cb(scr, color_stage_event_cb, LV_EVENT_CLICKED, NULL);
-    bsp_display_unlock();
+    knob_board_display_unlock();
     wait_color_stage(name);
     return ESP_OK;
 }
@@ -124,8 +111,8 @@ static void add_dot(lv_point_t point)
         s_dot_count--;
     }
 
-    int x = clamp_coord(point.x - DOT_SIZE / 2, 0, BSP_LCD_H_RES - DOT_SIZE);
-    int y = clamp_coord(point.y - DOT_SIZE / 2, 0, BSP_LCD_V_RES - DOT_SIZE);
+    int x = clamp_coord(point.x - DOT_SIZE / 2, 0, KNOB_BOARD_LCD_H_RES - DOT_SIZE);
+    int y = clamp_coord(point.y - DOT_SIZE / 2, 0, KNOB_BOARD_LCD_V_RES - DOT_SIZE);
     lv_obj_t *dot = lv_obj_create(lv_screen_active());
     lv_obj_remove_style_all(dot);
     lv_obj_set_size(dot, DOT_SIZE, DOT_SIZE);
@@ -183,7 +170,7 @@ static void create_touch_ui(void)
 
     lv_obj_t *button = lv_button_create(scr);
     lv_obj_set_size(button, 96, 44);
-    lv_obj_set_pos(button, BSP_LCD_H_RES - 112, 12);
+    lv_obj_set_pos(button, KNOB_BOARD_LCD_H_RES - 112, 12);
     lv_obj_add_event_cb(button, clear_event_cb, LV_EVENT_CLICKED, NULL);
     lv_obj_t *label = lv_label_create(button);
     lv_label_set_text(label, "Clear");
@@ -192,16 +179,25 @@ static void create_touch_ui(void)
 
 void app_main(void)
 {
-    ESP_LOGI(TAG, "START single BSP LVGL display/touch test LCD_RST=GPIO%d TOUCH_RST=GPIO%d",
-             BSP_LCD_RST, BSP_LCD_TOUCH_RST);
-    esp_err_t ret = board_gpio_input(BOARD_BOOT_GPIO, true);
+    ESP_LOGI(TAG, "START Board Manager LVGL display/touch test");
+    esp_err_t ret = knob_board_prepare();
+    if (ret == ESP_OK) {
+        ret = knob_board_gpio_init(KNOB_BOARD_PERIPH_BOOT, &s_boot_gpio);
+    }
     if (ret != ESP_OK) {
-        ESP_LOGW(TAG, "BOOT GPIO input setup failed: %s", esp_err_to_name(ret));
+        ESP_LOGE(TAG, "BOOT GPIO input setup failed: %s", esp_err_to_name(ret));
+        return;
     }
 
-    s_disp = bsp_display_start();
+    knob_board_display_config_t display_config = {
+        .adapter_config = ESP_LV_ADAPTER_DEFAULT_CONFIG(),
+        .rotation = ESP_LV_ADAPTER_ROTATE_0,
+        .tear_avoid_mode = ESP_LV_ADAPTER_TEAR_AVOID_MODE_TRIPLE_PARTIAL,
+        .enable_touch = true,
+    };
+    s_disp = knob_board_display_start(&display_config);
     if (s_disp == NULL) {
-        ESP_LOGE(TAG, "FAIL BSP LVGL init");
+        ESP_LOGE(TAG, "FAIL Board Manager LVGL init");
         return;
     }
 
@@ -212,11 +208,11 @@ void app_main(void)
     ret = lvgl_color_stage("blue", lv_color_hex(0x0000FF));
     ESP_ERROR_CHECK(ret);
 
-    ESP_LOGI(TAG, "color stages complete; keeping the same BSP LVGL display for touch drawing page");
+    ESP_LOGI(TAG, "color stages complete; keeping the Board Manager display for touch drawing page");
 
-    if (bsp_display_lock(-1)) {
+    if (knob_board_display_lock(-1)) {
         create_touch_ui();
-        bsp_display_unlock();
+        knob_board_display_unlock();
     }
 
     ESP_LOGI(TAG, "READY white touch drawing page");

@@ -11,13 +11,11 @@
 #include "esp_log.h"
 #include "esp_timer.h"
 #include "lvgl.h"
-#include "bsp/esp32_p4_knob_touch_amoled_1_75.h"
+#include "knob_board.h"
 
 static const char *TAG = "10_qmi8658";
 
 #define BOARD_I2C_FAST_CLK_HZ 400000U
-#define BOARD_QMI8658_INT1_GPIO GPIO_NUM_4
-#define BOARD_QMI8658_INT2_GPIO GPIO_NUM_5
 #define BOARD_QMI8658_ADDR_PRIMARY_7BIT 0x6B
 #define BOARD_QMI8658_ADDR_ALT_7BIT 0x6A
 
@@ -56,22 +54,12 @@ static lv_obj_t *g_chart;
 static lv_chart_series_t *g_ser_x;
 static lv_chart_series_t *g_ser_y;
 static lv_chart_series_t *g_ser_z;
+static int s_imu_int1_gpio = -1;
+static int s_imu_int2_gpio = -1;
 
 static int16_t le16(const uint8_t *data)
 {
     return (int16_t)((uint16_t)data[0] | ((uint16_t)data[1] << 8));
-}
-
-static esp_err_t gpio_input(gpio_num_t gpio, bool pullup)
-{
-    gpio_config_t cfg = {
-        .pin_bit_mask = 1ULL << gpio,
-        .mode = GPIO_MODE_INPUT,
-        .pull_up_en = pullup ? GPIO_PULLUP_ENABLE : GPIO_PULLUP_DISABLE,
-        .pull_down_en = GPIO_PULLDOWN_DISABLE,
-        .intr_type = GPIO_INTR_DISABLE,
-    };
-    return gpio_config(&cfg);
 }
 
 static esp_err_t i2c_read_reg(i2c_master_dev_handle_t dev, uint8_t reg, uint8_t *data, size_t len)
@@ -96,8 +84,7 @@ static void close_i2c(i2c_master_bus_handle_t *bus, i2c_master_dev_handle_t *dev
 
 static esp_err_t open_qmi8658(i2c_master_bus_handle_t *bus, i2c_master_dev_handle_t *dev, uint8_t *addr, uint8_t *who)
 {
-    ESP_RETURN_ON_ERROR(bsp_i2c_init(), TAG, "acquire I2C");
-    *bus = bsp_i2c_get_handle();
+    ESP_RETURN_ON_ERROR(knob_board_i2c_init(bus), TAG, "acquire Board Manager I2C");
 
     uint8_t selected = BOARD_QMI8658_ADDR_PRIMARY_7BIT;
     esp_err_t ret = i2c_master_probe(*bus, selected, 100);
@@ -159,8 +146,8 @@ static esp_err_t read_accel(i2c_master_dev_handle_t dev, imu_sample_t *sample)
     sample->ax_g = (float)le16(&raw[0]) / QMI8658_ACC_LSB_PER_G;
     sample->ay_g = (float)le16(&raw[2]) / QMI8658_ACC_LSB_PER_G;
     sample->az_g = (float)le16(&raw[4]) / QMI8658_ACC_LSB_PER_G;
-    sample->int1_level = gpio_get_level(BOARD_QMI8658_INT1_GPIO);
-    sample->int2_level = gpio_get_level(BOARD_QMI8658_INT2_GPIO);
+    sample->int1_level = gpio_get_level(s_imu_int1_gpio);
+    sample->int2_level = gpio_get_level(s_imu_int2_gpio);
     return ESP_OK;
 }
 
@@ -179,8 +166,8 @@ static void imu_task(void *arg)
             .error = ESP_OK,
             .addr = addr,
             .who_am_i = who,
-            .int1_level = gpio_get_level(BOARD_QMI8658_INT1_GPIO),
-            .int2_level = gpio_get_level(BOARD_QMI8658_INT2_GPIO),
+            .int1_level = gpio_get_level(s_imu_int1_gpio),
+            .int2_level = gpio_get_level(s_imu_int2_gpio),
         };
 
         if (!dev) {
@@ -265,8 +252,8 @@ static void update_ui(const imu_sample_t *sample)
         lv_label_set_text(g_value_label, "X N/A   Y N/A   Z N/A");
         snprintf(text, sizeof(text), "Probe 0x%02X/0x%02X | INT1 GPIO%d=%d INT2 GPIO%d=%d",
                  BOARD_QMI8658_ADDR_PRIMARY_7BIT, BOARD_QMI8658_ADDR_ALT_7BIT,
-                 BOARD_QMI8658_INT1_GPIO, sample->int1_level,
-                 BOARD_QMI8658_INT2_GPIO, sample->int2_level);
+                 s_imu_int1_gpio, sample->int1_level,
+                 s_imu_int2_gpio, sample->int2_level);
         lv_label_set_text(g_detail_label, text);
         return;
     }
@@ -277,8 +264,8 @@ static void update_ui(const imu_sample_t *sample)
     snprintf(text, sizeof(text), "X %+0.2fg   Y %+0.2fg   Z %+0.2fg", sample->ax_g, sample->ay_g, sample->az_g);
     lv_label_set_text(g_value_label, text);
     snprintf(text, sizeof(text), "INT1 GPIO%d=%d | INT2 GPIO%d=%d | UI 10 Hz, I2C task 40 Hz",
-             BOARD_QMI8658_INT1_GPIO, sample->int1_level,
-             BOARD_QMI8658_INT2_GPIO, sample->int2_level);
+             s_imu_int1_gpio, sample->int1_level,
+             s_imu_int2_gpio, sample->int2_level);
     lv_label_set_text(g_detail_label, text);
 
     lv_chart_set_next_value(g_chart, g_ser_x, (int32_t)(sample->ax_g * 1000.0f));
@@ -297,8 +284,9 @@ static void fail_idle(void)
 void app_main(void)
 {
     ESP_LOGI(TAG, "START QMI8658 LVGL accelerometer chart test");
-    ESP_ERROR_CHECK(gpio_input(BOARD_QMI8658_INT1_GPIO, false));
-    ESP_ERROR_CHECK(gpio_input(BOARD_QMI8658_INT2_GPIO, false));
+    ESP_ERROR_CHECK(knob_board_prepare());
+    ESP_ERROR_CHECK(knob_board_gpio_init(KNOB_BOARD_PERIPH_IMU_INT1, &s_imu_int1_gpio));
+    ESP_ERROR_CHECK(knob_board_gpio_init(KNOB_BOARD_PERIPH_IMU_INT2, &s_imu_int2_gpio));
 
     g_sample_queue = xQueueCreate(1, sizeof(imu_sample_t));
     if (!g_sample_queue) {
@@ -306,14 +294,14 @@ void app_main(void)
         fail_idle();
     }
 
-    g_disp = bsp_display_start();
+    g_disp = knob_board_display_start(NULL);
     if (!g_disp) {
         ESP_LOGE(TAG, "FAIL LVGL init");
         fail_idle();
     }
-    if (bsp_display_lock(-1)) {
+    if (knob_board_display_lock(-1)) {
         create_ui();
-        bsp_display_unlock();
+        knob_board_display_unlock();
     }
 
     xTaskCreate(imu_task, "qmi8658_sample", 4096, NULL, 5, NULL);
@@ -329,9 +317,9 @@ void app_main(void)
         }
         int64_t now = esp_timer_get_time();
         if (have_latest && now - last_ui_update >= UI_UPDATE_PERIOD_US) {
-            if (bsp_display_lock(-1)) {
+            if (knob_board_display_lock(-1)) {
                 update_ui(&latest);
-                bsp_display_unlock();
+                knob_board_display_unlock();
                 last_ui_update = now;
             }
         }

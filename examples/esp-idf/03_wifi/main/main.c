@@ -12,8 +12,9 @@
 #include "esp_log.h"
 #include "esp_netif.h"
 #include "esp_wifi.h"
+#include "knob_board.h"
+#include "knob_wireless.h"
 #include "nvs_flash.h"
-#include "esp_extconn.h"
 
 static const char *TAG = "03_wifi";
 
@@ -285,15 +286,19 @@ cleanup_events:
 
 void app_main(void)
 {
-    esp_extconn_config_t cfg = ESP_EXTCONN_CONFIG_DEFAULT();
-    esp_err_t ret = esp_extconn_init(&cfg);
+    esp_err_t ret = knob_board_prepare();
     if (ret != ESP_OK) {
-        ESP_LOGE(TAG, "esp_extconn_init failed: %s", esp_err_to_name(ret));
+        ESP_LOGE(TAG, "Board Manager prepare failed: %s", esp_err_to_name(ret));
+        return;
+    }
+    ret = knob_wireless_init();
+    if (ret != ESP_OK) {
+        ESP_LOGE(TAG, "Board Manager wireless init failed: %s", esp_err_to_name(ret));
         ESP_LOGE(TAG, "summary: status=EXTCONN_FAIL err=%s", esp_err_to_name(ret));
         return;
     }
 
-    uint8_t *mac = esp_extconn_get_mac();
+    uint8_t *mac = knob_wireless_get_mac();
     if (mac) {
         ESP_LOGI(TAG, "extconn MAC %02x:%02x:%02x:%02x:%02x:%02x",
                  mac[0], mac[1], mac[2], mac[3], mac[4], mac[5]);

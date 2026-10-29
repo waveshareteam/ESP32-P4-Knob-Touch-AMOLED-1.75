@@ -19,8 +19,6 @@
         {
           "category": "embedded_upstream",
           "patterns": [
-            "examples/esp-idf/15_lvgl_demo_v9/components/esp_lcd_co5300/**",
-            "examples/esp-idf/16_a2dp_sink/components/esp_lcd_co5300/**",
             "examples/factory/components/brookesia_core/**",
             "examples/factory/components/esp-extconn/**",
             "examples/factory/components/usb_device_uac/**",
@@ -32,20 +30,16 @@
           "patterns": [
             "examples/factory/components/XiaozhiApp/third_party/xiaozhi_esp32/**"
           ]
-        },
-        {
-          "category": "first_party_wrapper",
-          "patterns": [
-            "examples/esp-idf/15_lvgl_demo_v9/components/esp32_p4_knob_touch_amoled_1_75/README*.md",
-            "examples/esp-idf/16_a2dp_sink/components/esp32_p4_knob_touch_amoled_1_75/README*.md"
-          ]
         }
       ]
     },
     "ci_routing": {
       "esp_idf_shared_patterns": [
-        "examples/esp-idf/16_a2dp_sink/components/esp32_p4_knob_touch_amoled_1_75/**",
-        "examples/esp-idf/16_a2dp_sink/components/esp_lcd_co5300/**"
+        "examples/esp-idf/common/knob_board/**",
+        "examples/esp-idf/common/knob_wireless/**"
+      ],
+      "global_build_patterns": [
+        "examples/esp-idf/common/waveshare_boards/**"
       ]
     }
   }

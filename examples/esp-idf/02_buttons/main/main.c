@@ -7,9 +7,7 @@
 #include "esp_err.h"
 #include "esp_log.h"
 #include "esp_timer.h"
-
-#define BOARD_BOOT_GPIO GPIO_NUM_35
-#define BOARD_PWR_GPIO GPIO_NUM_2
+#include "knob_board.h"
 
 static const char *TAG = "02_buttons";
 static const uint32_t DEBOUNCE_MS = 30;
@@ -23,40 +21,16 @@ typedef struct {
     bool initialized;
 } board_gpio_debounce_t;
 
-static esp_err_t validate_gpio(gpio_num_t gpio)
-{
-    return gpio >= 0 ? ESP_OK : ESP_ERR_INVALID_ARG;
-}
-
-static esp_err_t board_gpio_input_ex(gpio_num_t gpio, bool pullup, bool pulldown)
-{
-    ESP_RETURN_ON_ERROR(validate_gpio(gpio), "board_gpio", "invalid gpio");
-    gpio_config_t cfg = {
-        .pin_bit_mask = 1ULL << gpio,
-        .mode = GPIO_MODE_INPUT,
-        .pull_up_en = pullup ? GPIO_PULLUP_ENABLE : GPIO_PULLUP_DISABLE,
-        .pull_down_en = pulldown ? GPIO_PULLDOWN_ENABLE : GPIO_PULLDOWN_DISABLE,
-        .intr_type = GPIO_INTR_DISABLE,
-    };
-    return gpio_config(&cfg);
-}
-
-static esp_err_t board_gpio_input(gpio_num_t gpio, bool pullup)
-{
-    return board_gpio_input_ex(gpio, pullup, false);
-}
-
 static uint32_t board_millis(void)
 {
     return (uint32_t)(esp_timer_get_time() / 1000ULL);
 }
 
-static esp_err_t board_gpio_debounce_init(board_gpio_debounce_t *state, gpio_num_t gpio, bool pullup, uint32_t debounce_ms)
+static esp_err_t board_gpio_debounce_init(board_gpio_debounce_t *state, gpio_num_t gpio, uint32_t debounce_ms)
 {
     if (!state) {
         return ESP_ERR_INVALID_ARG;
     }
-    ESP_RETURN_ON_ERROR(board_gpio_input(gpio, pullup), "board_gpio", "input config failed");
     int level = gpio_get_level(gpio);
     state->gpio = gpio;
     state->debounce_ms = debounce_ms;
@@ -111,9 +85,14 @@ static const char *event_name(const button_state_t *button, int level)
     return level == button->active_level ? "PRESS" : "RELEASE";
 }
 
-static bool button_init(button_state_t *button)
+static bool button_init(button_state_t *button, const char *board_gpio_name)
 {
-    esp_err_t ret = board_gpio_debounce_init(&button->debounce, button->gpio, true, DEBOUNCE_MS);
+    int pin = -1;
+    esp_err_t ret = knob_board_gpio_init(board_gpio_name, &pin);
+    if (ret == ESP_OK) {
+        button->gpio = pin;
+        ret = board_gpio_debounce_init(&button->debounce, button->gpio, DEBOUNCE_MS);
+    }
     if (ret != ESP_OK) {
         ESP_LOGE(TAG, "FAIL configure %s GPIO%d input: %s", button->name, button->gpio, esp_err_to_name(ret));
         return false;
@@ -128,14 +107,16 @@ static bool button_init(button_state_t *button)
 
 void app_main(void)
 {
+    ESP_ERROR_CHECK(knob_board_prepare());
     button_state_t buttons[] = {
-        {.name = "BOOT", .gpio = BOARD_BOOT_GPIO, .active_level = 0},
-        {.name = "PWR/GPIO2", .gpio = BOARD_PWR_GPIO, .active_level = 0},
+        {.name = "BOOT", .active_level = 0},
+        {.name = "PWR/GPIO2", .active_level = 0},
     };
+    const char *board_gpio_names[] = {KNOB_BOARD_PERIPH_BOOT, KNOB_BOARD_PERIPH_POWER};
 
     ESP_LOGI(TAG, "START read-only active-low button test; inputs use the validated pull-up baseline");
     for (size_t i = 0; i < sizeof(buttons) / sizeof(buttons[0]); ++i) {
-        if (!button_init(&buttons[i])) {
+        if (!button_init(&buttons[i], board_gpio_names[i])) {
             while (true) {
                 vTaskDelay(pdMS_TO_TICKS(5000));
             }

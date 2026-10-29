@@ -32,7 +32,7 @@ This board combines an ESP32-P4 with a round AMOLED touch display, rotary direct
 | Audio | ES8389 codec, ES7210 microphone ADC; NS4150B amplifier on the adapter |
 | Controls | Rotary direction switches, DRV8837 vibration motor driver |
 | Storage | microSD interface |
-| Board support | Local BSP components included with the display and audio examples |
+| Board support | ESP Board Manager with one shared YAML board definition |
 
 <a id="quick-start"></a>
 
@@ -76,6 +76,8 @@ The repository provides source projects. Build a peripheral example or the ESP-B
 | ESP-IDF factory application | `v6.1` | 1 |
 
 The target is `esp32p4`; the framework configuration is maintained in [product.json](.github/product.json).
+
+All examples use the shared Board Manager definition under `examples/esp-idf/common/waveshare_boards/`; CMake generates its tables inside each build directory. If `esp-bmgr-assist` is installed, set `ESP_BOARD_MANAGER_SKIP_GEN_CHECK=1` when building so its source-directory precheck does not reject those build-directory tables.
 
 <a id="resources"></a>
 

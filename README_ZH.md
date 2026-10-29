@@ -32,7 +32,7 @@
 | 音频 | ES8389 编解码器、ES7210 麦克风 ADC；转接板搭载 NS4150B 功放 |
 | 控制 | 旋钮方向开关、DRV8837 振动马达驱动 |
 | 存储扩展 | microSD 接口 |
-| 板级支持 | 显示与音频示例中随附的本地 BSP 组件 |
+| 板级支持 | ESP Board Manager 与共用的 YAML 板级定义 |
 
 <a id="quick-start"></a>
 
@@ -76,6 +76,8 @@
 | ESP-IDF 出厂应用 | `v6.1` | 1 |
 
 目标芯片为 `esp32p4`，框架配置统一记录在 [product.json](.github/product.json) 中。
+
+所有示例共用 `examples/esp-idf/common/waveshare_boards/` 中的 Board Manager 板定义，CMake 会在各自的构建目录生成配置表。若已安装 `esp-bmgr-assist`，构建时设置 `ESP_BOARD_MANAGER_SKIP_GEN_CHECK=1`，避免其源码目录预检查误判这些构建目录中的配置表。
 
 <a id="resources"></a>
 

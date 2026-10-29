@@ -1,6 +1,6 @@
 idf_component_register(SRCS "main.c" "usb_descriptors.c"
                        INCLUDE_DIRS "."
-                       REQUIRES esp32_p4_knob_touch_amoled_1_75 esp_driver_jpeg esp_driver_ppa esp_hw_support esp_mm
+                       REQUIRES knob_board esp_driver_jpeg esp_driver_ppa esp_hw_support esp_mm
                        PRIV_REQUIRES tinyusb lvgl)
 
 idf_component_get_property(tusb_lib espressif__tinyusb COMPONENT_LIB)

@@ -4,7 +4,7 @@
 
 ## What It Does
 
-Scans nearby Wi-Fi access points through the board's external connectivity component. It does not require credentials and does not connect to a network.
+Initializes the board's external connectivity device through Board Manager, then scans nearby Wi-Fi access points. It does not require credentials and does not connect to a network.
 
 ## Hardware Required
 

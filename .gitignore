@@ -36,3 +36,6 @@ release-dist/
 *.schdoc
 *.kicad_sch
 *.sch
+
+# Generated Board Manager tables are derived from the shared YAML
+**/components/gen_bmgr_codes/

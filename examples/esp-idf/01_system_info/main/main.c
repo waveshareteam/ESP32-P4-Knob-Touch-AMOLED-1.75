@@ -7,6 +7,7 @@
 #include "esp_heap_caps.h"
 #include "esp_log.h"
 #include "esp_psram.h"
+#include "knob_board.h"
 #include "sdkconfig.h"
 
 static const char *TAG = "01_system_info";
@@ -34,7 +35,23 @@ void app_main(void)
 
     ESP_LOGI(TAG, "START read-only ESP32-P4 system information check");
 
-    esp_err_t ret = esp_flash_get_size(NULL, &flash_size);
+    esp_err_t ret = knob_board_prepare();
+    if (ret != ESP_OK) {
+        ESP_LOGE(TAG, "FAIL Board Manager prepare: %s", esp_err_to_name(ret));
+        idle_forever();
+    }
+    const char *board_name = NULL;
+    const char *board_chip = NULL;
+    const char *board_version = NULL;
+    ret = knob_board_get_info(&board_name, &board_chip, &board_version);
+    if (ret != ESP_OK) {
+        ESP_LOGE(TAG, "FAIL Board Manager board info: %s", esp_err_to_name(ret));
+        ok = false;
+    } else {
+        ESP_LOGI(TAG, "Board Manager: %s (%s, %s)", board_name, board_chip, board_version);
+    }
+
+    ret = esp_flash_get_size(NULL, &flash_size);
     if (ret != ESP_OK) {
         ESP_LOGE(TAG, "FAIL esp_flash_get_size: %s", esp_err_to_name(ret));
         ok = false;

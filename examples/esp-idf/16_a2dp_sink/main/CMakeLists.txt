@@ -6,7 +6,7 @@ idf_component_register(SRCS "bt_app_av.c"
                             "bt_app_core.c"
                             "main.c"
                             ${LV_DEMOS_SOURCES}
-                    PRIV_REQUIRES esp_driver_i2s esp32_p4_knob_touch_amoled_1_75 bt nvs_flash esp_ringbuf esp_driver_dac driver esp_driver_jpeg esp_timer bsp_extra
+                    PRIV_REQUIRES bt nvs_flash esp_ringbuf esp_timer esp_driver_gpio knob_board knob_wireless esp_codec_dev
                     INCLUDE_DIRS "." ${LV_DEMO_DIR})
 idf_component_get_property(LVGL_LIB lvgl__lvgl COMPONENT_LIB)
 target_compile_options(
