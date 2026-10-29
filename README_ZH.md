@@ -38,7 +38,7 @@
 
 ## 📦 快速开始
 
-本仓库提供源码工程。可按各自的 ESP-IDF 版本构建外设示例或 ESP-Brookesia 出厂应用。
+在 [firmware/](firmware/) 目录下载文件名带 `FactoryOnly` 的固件，按[烧录说明](firmware/README_ZH.md)恢复出厂演示。也可从源码构建：
 
 1. 安装并启用下方开发环境表中的 ESP-IDF 版本。
 2. 下载或克隆仓库，在所选示例目录中打开终端。

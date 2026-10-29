@@ -38,7 +38,7 @@ This board combines an ESP32-P4 with a round AMOLED touch display, rotary direct
 
 ## 📦 Quick Start
 
-The repository provides source projects. Build a peripheral example or the ESP-Brookesia factory application with its documented ESP-IDF version.
+Download the file named `FactoryOnly` from [firmware/](firmware/) to restore the factory demo; follow the [flashing instructions](firmware/README.md). To build from source:
 
 1. Install and activate ESP-IDF using the version in the development environment table below.
 2. Download or clone this repository, then open a terminal in the chosen example directory.

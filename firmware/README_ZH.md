@@ -1,0 +1,19 @@
+# 固件
+
+[English](README.md) | [简体中文](README_ZH.md)
+
+适用于 ESP32-P4-Knob-Touch-AMOLED-1.75 的可直接烧录固件。每个文件都是从 `0x0` 写入的合并镜像，文件名中的日期即版本。
+
+| 文件 | 用途 |
+| --- | --- |
+| `ESP32-P4-Knob-Touch-AMOLED-1.75_FactoryOnly_20261029.bin` | Brookesia 演示固件，包含旋钮音量修复、增强的最高音量范围和内置音乐。 |
+
+安装 esptool，并将 `PORT` 替换为开发板的实际串口：
+
+```bash
+python -m pip install "esptool>=5"
+python -m esptool --chip esp32p4 --port PORT erase-flash
+python -m esptool --chip esp32p4 --port PORT --baud 921600 write-flash --flash-mode dio --flash-freq 80m --flash-size 32MB 0x0 ESP32-P4-Knob-Touch-AMOLED-1.75_FactoryOnly_20261029.bin
+```
+
+完整烧录会重置已保存的设备配置。固件源码位于 [`examples/factory`](../examples/factory/)。
