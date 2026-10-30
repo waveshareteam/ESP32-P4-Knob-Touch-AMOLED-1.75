@@ -9,6 +9,10 @@
       "v6.1"
     ]
   },
+  "arduino": {
+    "core": "3.3.12",
+    "fqbn": "esp32:esp32:esp32p4:ChipVariant=postv3,FlashSize=32M,PartitionScheme=app13M_data7M_32MB,PSRAM=enabled"
+  },
   "factory_firmware": {
     "esp_idf": "v6.1"
   },
@@ -27,7 +31,8 @@
         {
           "category": "third_party",
           "patterns": [
-            "examples/factory/components/XiaozhiApp/third_party/xiaozhi_esp32/**"
+            "examples/factory/components/XiaozhiApp/third_party/xiaozhi_esp32/**",
+            "examples/arduino/libraries/lvgl/**"
           ]
         }
       ]

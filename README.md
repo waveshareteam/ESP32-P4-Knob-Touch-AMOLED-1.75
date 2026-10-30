@@ -11,6 +11,7 @@
     <a href="https://www.waveshare.com/wiki/ESP32-P4-Knob-Touch-AMOLED-1.75">🌐 Product</a> &middot;
     <a href="#quick-start">📦 Firmware</a> &middot;
     <a href="examples/esp-idf/">🧩 ESP-IDF</a> &middot;
+    <a href="examples/arduino/examples/">🔧 Arduino</a> &middot;
     <a href="#resources">📚 Documentation</a>
   </p>
 </div>
@@ -19,7 +20,7 @@
 
 ## ✨ Overview
 
-This board combines an ESP32-P4 with a round AMOLED touch display, rotary direction inputs and vibration feedback. This repository provides ESP-IDF peripheral examples and an ESP-Brookesia factory application.
+This board combines an ESP32-P4 with a round AMOLED touch display, rotary direction inputs and vibration feedback. This repository provides ESP-IDF and Arduino peripheral examples, plus an ESP-Brookesia factory application.
 
 | Feature | Device / interface |
 | --- | --- |
@@ -45,6 +46,10 @@ Download the file named `FactoryOnly` from [firmware/](firmware/) to restore the
 3. Connect the board over USB and run `idf.py set-target esp32p4 build flash monitor`.
 4. Follow the example README for any required peripherals and expected result; start with [system information](examples/esp-idf/01_system_info/) or build the [factory application](examples/factory/).
 
+For Arduino, install **ESP32 by Espressif Systems** version `3.3.12`, then open a sketch under `examples/arduino/examples/`. Select **ESP32P4 Dev Module** and set Chip Variant to **v3.00 or newer**, Flash Size to **32 MB**, PSRAM to **Enabled**, and Partition Scheme to **32M Flash (13MB APP/6.75MB SPIFFS)**. Copy the contents of `examples/arduino/libraries/`, including `lv_conf.h`, to the Arduino sketchbook libraries folder, or compile with `--libraries examples/arduino/libraries` in Arduino CLI.
+
+The Arduino component examples under `examples/esp-idf/` use Arduino together with ESP-IDF and are not built by the ordinary Arduino IDE. Build them with `idf.py set-target esp32p4 build flash monitor` from the selected example directory.
+
 ## 🧪 Examples
 
 ### ESP-IDF
@@ -68,16 +73,46 @@ Download the file named `FactoryOnly` from [firmware/](firmware/) to restore the
 | [15_lvgl_demo_v9](examples/esp-idf/15_lvgl_demo_v9/) | LVGL benchmark |
 | [16_a2dp_sink](examples/esp-idf/16_a2dp_sink/) | Bluetooth audio receiver and display |
 
+### Arduino
+
+| Example | Main feature |
+| --- | --- |
+| [01_system_info](examples/arduino/examples/01_system_info/) | Chip, Flash, PSRAM and heap information |
+| [02_buttons](examples/arduino/examples/02_buttons/) | BOOT and PWR button state logging |
+| [05_axp2101](examples/arduino/examples/05_axp2101/) | Read-only PMU status over I2C |
+| [06_sd_card](examples/arduino/examples/06_sd_card/) | microSD mount and temporary-file verification |
+| [07_limit_switches](examples/arduino/examples/07_limit_switches/) | Rotary direction-switch counting |
+| [08_motor_drive](examples/arduino/examples/08_motor_drive/) | Timed vibration motor control |
+| [09_rtc](examples/arduino/examples/09_rtc/) | RTC time output |
+| [10_qmi8658](examples/arduino/examples/10_qmi8658/) | Accelerometer output |
+| [11_display_touch](examples/arduino/examples/11_display_touch/) | Display and continuous touch drawing |
+| [12_mic_spectrum](examples/arduino/examples/12_mic_spectrum/) | Microphone spectrum display |
+| [13_speaker_output](examples/arduino/examples/13_speaker_output/) | Speaker test tone playback |
+| [14_usb_display](examples/arduino/examples/14_usb_display/) | Windows USB JPEG display and HID touch receiver |
+| [15_lvgl_demo_v9](examples/arduino/examples/15_lvgl_demo_v9/) | LVGL benchmark |
+
+The sensor and control examples report through the 115200-baud serial monitor. The display and touch sketches provide the screen output.
+
+### Arduino as an ESP-IDF Component
+
+| Example | Main feature |
+| --- | --- |
+| [03_wifi_arduino](examples/esp-idf/03_wifi_arduino/) | Wi-Fi access point scanning through the onboard coprocessor |
+| [04_bluetooth_arduino](examples/esp-idf/04_bluetooth_arduino/) | BLE scanning through the onboard coprocessor |
+| [16_a2dp_sink_arduino](examples/esp-idf/16_a2dp_sink_arduino/) | Bluetooth A2DP audio receiver |
+
 ## 🛠️ Development Environment
 
 | Framework | Configured version | Examples |
 | --- | --- | ---: |
 | ESP-IDF examples | `v6.1` | 16 |
+| Arduino as an ESP-IDF component | `v6.1`, Arduino `3.3.12` | 3 |
 | ESP-IDF factory application | `v6.1` | 1 |
+| Arduino examples | `3.3.12` | 13 |
 
 The target is `esp32p4`; the framework configuration is maintained in [product.json](.github/product.json).
 
-All examples use the shared Board Manager definition under `examples/esp-idf/common/waveshare_boards/`; CMake generates its tables inside each build directory. If `esp-bmgr-assist` is installed, set `ESP_BOARD_MANAGER_SKIP_GEN_CHECK=1` when building so its source-directory precheck does not reject those build-directory tables.
+The ESP-IDF and Arduino-component examples use the shared Board Manager definition under `examples/esp-idf/common/waveshare_boards/`; CMake generates its tables inside each build directory. If `esp-bmgr-assist` is installed, set `ESP_BOARD_MANAGER_SKIP_GEN_CHECK=1` when building so its source-directory precheck does not reject those build-directory tables. Ordinary Arduino sketches use the `board_config`, `board_display`, and `board_audio` libraries under `examples/arduino/libraries/`.
 
 <a id="resources"></a>
 
