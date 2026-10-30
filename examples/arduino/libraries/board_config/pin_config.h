@@ -18,9 +18,15 @@
 #define KNOB_PIN_HAPTIC_IN1 22
 #define KNOB_PIN_HAPTIC_IN2 23
 
-// Slot 0 uses the fixed SDMMC IO MUX. GPIO45 retains its board pull-down.
+// Slot 0 uses the fixed SDMMC IO MUX. The core board variant controls card power.
 #define KNOB_SDMMC_SLOT 0
 #define KNOB_SDMMC_LDO_CHANNEL 4
+#define KNOB_PIN_SD_CLK 43
+#define KNOB_PIN_SD_CMD 44
+#define KNOB_PIN_SD_D0 39
+#define KNOB_PIN_SD_D1 40
+#define KNOB_PIN_SD_D2 41
+#define KNOB_PIN_SD_D3 42
 
 #define KNOB_PIN_LCD_RESET 29
 #define KNOB_PIN_TOUCH_RESET 27
