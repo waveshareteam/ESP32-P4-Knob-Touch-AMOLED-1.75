@@ -58,7 +58,21 @@ bool KnobBoardAudio::begin(uint32_t sampleRate, TwoWire &wire)
         i2s_.end();
         return false;
     }
+    sampleRate_ = sampleRate;
     ready_ = true;
+    return true;
+}
+
+bool KnobBoardAudio::setSampleRate(uint32_t sampleRate)
+{
+    if (!ready_ || sampleRate == 0 || sampleRate == sampleRate_) {
+        return ready_ && sampleRate != 0;
+    }
+    if (!i2s_.configureTX(sampleRate, I2S_DATA_BIT_WIDTH_16BIT,
+                          I2S_SLOT_MODE_STEREO)) {
+        return false;
+    }
+    sampleRate_ = sampleRate;
     return true;
 }
 

@@ -12,6 +12,7 @@
 class KnobBoardAudio {
 public:
     bool begin(uint32_t sampleRate = 16000, TwoWire &wire = Wire);
+    bool setSampleRate(uint32_t sampleRate);
     bool enablePlayback();
     bool disablePlayback();
     bool setVolume(uint8_t percent);
@@ -31,6 +32,7 @@ private:
 
     TwoWire *wire_ = nullptr;
     I2SClass i2s_{I2S_NUM_1};
+    uint32_t sampleRate_ = 0;
     bool ready_ = false;
     bool playing_ = false;
 };
