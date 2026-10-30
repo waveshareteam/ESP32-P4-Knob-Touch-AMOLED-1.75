@@ -144,6 +144,7 @@ bool KnobBoardDisplay::beginLvgl(uint16_t viewportSize)
         lastError_ = "LVGL display creation failed";
         return false;
     }
+    lv_sysmon_hide_performance(display_);
     lv_display_set_user_data(display_, this);
     lv_display_set_color_format(display_, LV_COLOR_FORMAT_RGB565);
     lv_display_set_buffers(display_, drawBuffer_, nullptr, drawBufferPixels * sizeof(lv_color_t), LV_DISPLAY_RENDER_MODE_PARTIAL);

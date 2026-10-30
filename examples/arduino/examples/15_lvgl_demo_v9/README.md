@@ -4,7 +4,7 @@
 
 ## What It Does
 
-Runs the LVGL v9 benchmark in a centered 320 × 320 safe viewport on the board's round CO5300 MIPI-DSI display, with CST9217 touch input available to LVGL.
+Runs the LVGL v9 benchmark across the full 466 × 466 round CO5300 MIPI-DSI display, with CST9217 touch input available to LVGL.
 
 ## Hardware Required
 
@@ -16,7 +16,7 @@ Open `15_lvgl_demo_v9.ino`, select the board configuration in the repository REA
 
 ## Expected Result
 
-The display shows the LVGL benchmark scenes and summary screen inside the centered square viewport.
+The full round display shows the LVGL benchmark scenes and summary screen. When it completes, the serial monitor reports the valid scene count and average FPS.
 
 ## Troubleshooting
 
