@@ -50,7 +50,7 @@
 3. 通过 USB 连接开发板，运行 `idf.py set-target esp32p4 build flash monitor`。
 4. 按示例 README 连接需要的外设并查看预期现象；可先运行[系统信息示例](examples/esp-idf/01_system_info/README_ZH.md)，或构建[出厂应用](examples/factory/README_ZH.md)。
 
-Arduino 开发请安装 **ESP32 by Espressif Systems** `3.3.12`，再打开 `examples/arduino/examples/` 中的草图。开发板选择 **ESP32P4 Dev Module**，并设置 Chip Variant 为 **v3.00 or newer**、Flash Size 为 **32 MB**、PSRAM 为 **Enabled**、Partition Scheme 为 **32M Flash (13MB APP/6.75MB SPIFFS)**。将 `examples/arduino/libraries/` 的内容（包括 `lv_conf.h`）复制到 Arduino sketchbook 的 libraries 目录，或在 Arduino CLI 中使用 `--libraries examples/arduino/libraries`。
+Arduino 开发请安装 **ESP32 by Espressif Systems** `3.3.12`，再打开 `examples/arduino/examples/` 中的草图。开发板选择 **ESP32P4 Dev Module**，并设置 Chip Variant 为 **v3.00 or newer**、Flash Size 为 **32 MB**、PSRAM 为 **Enabled**、Partition Scheme 为 **32M Flash (13MB APP/6.75MB SPIFFS)**。将 `examples/arduino/libraries/` 的全部内容（包括 `lv_conf.h` 与 `KnobWireless`）复制到 Arduino sketchbook 的 libraries 目录，或在 Arduino CLI 中使用 `--libraries examples/arduino/libraries`。`KnobWireless` 为此 core 版本提供预编译的 ESP32-P4 运行时；这些草图不需要安装 ESP-IDF。
 
 ## 🧪 示例
 
@@ -81,6 +81,8 @@ Arduino 开发请安装 **ESP32 by Espressif Systems** `3.3.12`，再打开 `exa
 | --- | --- |
 | [01_system_info](examples/arduino/examples/01_system_info/README_ZH.md) | 芯片、Flash、PSRAM 与 Heap 信息 |
 | [02_buttons](examples/arduino/examples/02_buttons/README_ZH.md) | BOOT 和 PWR 按键状态日志 |
+| [03_wifi](examples/arduino/examples/03_wifi/README_ZH.md) | Wi-Fi 热点扫描 |
+| [04_bluetooth](examples/arduino/examples/04_bluetooth/README_ZH.md) | 蓝牙 LE 广播扫描 |
 | [05_axp2101](examples/arduino/examples/05_axp2101/README_ZH.md) | I2C 只读 PMU 状态 |
 | [06_sd_card](examples/arduino/examples/06_sd_card/README_ZH.md) | microSD 挂载与临时文件校验 |
 | [07_limit_switches](examples/arduino/examples/07_limit_switches/README_ZH.md) | 旋钮方向开关计数 |
@@ -92,6 +94,7 @@ Arduino 开发请安装 **ESP32 by Espressif Systems** `3.3.12`，再打开 `exa
 | [13_speaker_output](examples/arduino/examples/13_speaker_output/README_ZH.md) | 扬声器测试音播放 |
 | [14_usb_display](examples/arduino/examples/14_usb_display/README_ZH.md) | Windows USB JPEG 扩展屏与 HID 触摸接收端 |
 | [15_lvgl_demo_v9](examples/arduino/examples/15_lvgl_demo_v9/README_ZH.md) | LVGL 性能测试 |
+| [16_a2dp_sink](examples/arduino/examples/16_a2dp_sink/README_ZH.md) | 手机 A2DP 音乐播放、旋钮音量控制与圆形状态界面 |
 
 传感器和控制示例通过 115200 波特率串口监视器输出；显示和触摸草图会在屏幕上显示结果。
 
@@ -101,7 +104,7 @@ Arduino 开发请安装 **ESP32 by Espressif Systems** `3.3.12`，再打开 `exa
 | --- | --- | ---: |
 | ESP-IDF 外设示例 | `v6.1` | 16 |
 | ESP-IDF 出厂应用 | `v6.1` | 1 |
-| Arduino 示例 | `3.3.12` | 13 |
+| Arduino 示例 | `3.3.12` | 16 |
 
 目标芯片为 `esp32p4`，框架配置统一记录在 [product.json](.github/product.json) 中。
 

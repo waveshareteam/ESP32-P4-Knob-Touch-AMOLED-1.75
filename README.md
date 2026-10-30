@@ -50,7 +50,7 @@ Download the file named `FactoryOnly` from [firmware/](firmware/) to restore the
 3. Connect the board over USB and run `idf.py set-target esp32p4 build flash monitor`.
 4. Follow the example README for any required peripherals and expected result; start with [system information](examples/esp-idf/01_system_info/) or build the [factory application](examples/factory/).
 
-For Arduino, install **ESP32 by Espressif Systems** version `3.3.12`, then open a sketch under `examples/arduino/examples/`. Select **ESP32P4 Dev Module** and set Chip Variant to **v3.00 or newer**, Flash Size to **32 MB**, PSRAM to **Enabled**, and Partition Scheme to **32M Flash (13MB APP/6.75MB SPIFFS)**. Copy the contents of `examples/arduino/libraries/`, including `lv_conf.h`, to the Arduino sketchbook libraries folder, or compile with `--libraries examples/arduino/libraries` in Arduino CLI.
+For Arduino, install **ESP32 by Espressif Systems** version `3.3.12`, then open a sketch under `examples/arduino/examples/`. Select **ESP32P4 Dev Module** and set Chip Variant to **v3.00 or newer**, Flash Size to **32 MB**, PSRAM to **Enabled**, and Partition Scheme to **32M Flash (13MB APP/6.75MB SPIFFS)**. Copy all contents of `examples/arduino/libraries/`, including `lv_conf.h` and `KnobWireless`, to the Arduino sketchbook libraries folder, or compile with `--libraries examples/arduino/libraries` in Arduino CLI. `KnobWireless` supplies a precompiled ESP32-P4 runtime for this core version; an ESP-IDF installation is not required for these sketches.
 
 ## 🧪 Examples
 
@@ -81,6 +81,8 @@ For Arduino, install **ESP32 by Espressif Systems** version `3.3.12`, then open 
 | --- | --- |
 | [01_system_info](examples/arduino/examples/01_system_info/) | Chip, Flash, PSRAM and heap information |
 | [02_buttons](examples/arduino/examples/02_buttons/) | BOOT and PWR button state logging |
+| [03_wifi](examples/arduino/examples/03_wifi/) | Wi-Fi access point scanning |
+| [04_bluetooth](examples/arduino/examples/04_bluetooth/) | Bluetooth LE advertisement scanning |
 | [05_axp2101](examples/arduino/examples/05_axp2101/) | Read-only PMU status over I2C |
 | [06_sd_card](examples/arduino/examples/06_sd_card/) | microSD mount and temporary-file verification |
 | [07_limit_switches](examples/arduino/examples/07_limit_switches/) | Rotary direction-switch counting |
@@ -92,6 +94,7 @@ For Arduino, install **ESP32 by Espressif Systems** version `3.3.12`, then open 
 | [13_speaker_output](examples/arduino/examples/13_speaker_output/) | Speaker test tone playback |
 | [14_usb_display](examples/arduino/examples/14_usb_display/) | Windows USB JPEG display and HID touch receiver |
 | [15_lvgl_demo_v9](examples/arduino/examples/15_lvgl_demo_v9/) | LVGL benchmark |
+| [16_a2dp_sink](examples/arduino/examples/16_a2dp_sink/) | Phone A2DP music playback, knob volume control, and round status UI |
 
 The sensor and control examples report through the 115200-baud serial monitor. The display and touch sketches provide the screen output.
 
@@ -101,7 +104,7 @@ The sensor and control examples report through the 115200-baud serial monitor. T
 | --- | --- | ---: |
 | ESP-IDF examples | `v6.1` | 16 |
 | ESP-IDF factory application | `v6.1` | 1 |
-| Arduino examples | `3.3.12` | 13 |
+| Arduino examples | `3.3.12` | 16 |
 
 The target is `esp32p4`; the framework configuration is maintained in [product.json](.github/product.json).
 
