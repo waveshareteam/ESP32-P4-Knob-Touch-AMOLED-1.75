@@ -1,7 +1,0 @@
-dependencies:
-  idf: ">=6.1,<6.2"
-  espressif/arduino-esp32: "3.3.12"
-  lvgl/lvgl:
-    version: "9.*"
-    public: true
-  78/xiaozhi-fonts: "~1.5.5"

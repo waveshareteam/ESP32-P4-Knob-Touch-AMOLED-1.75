@@ -49,8 +49,6 @@ Download the file named `FactoryOnly` from [firmware/](firmware/) to restore the
 
 For Arduino, install **ESP32 by Espressif Systems** version `3.3.12`, then open a sketch under `examples/arduino/examples/`. Select **ESP32P4 Dev Module** and set Chip Variant to **v3.00 or newer**, Flash Size to **32 MB**, PSRAM to **Enabled**, and Partition Scheme to **32M Flash (13MB APP/6.75MB SPIFFS)**. Copy the contents of `examples/arduino/libraries/`, including `lv_conf.h`, to the Arduino sketchbook libraries folder, or compile with `--libraries examples/arduino/libraries` in Arduino CLI.
 
-The Arduino component examples under `examples/esp-idf/` use Arduino together with ESP-IDF and are not built by the ordinary Arduino IDE. Build them with `idf.py set-target esp32p4 build flash monitor` from the selected example directory.
-
 ## 🧪 Examples
 
 ### ESP-IDF
@@ -94,26 +92,17 @@ The Arduino component examples under `examples/esp-idf/` use Arduino together wi
 
 The sensor and control examples report through the 115200-baud serial monitor. The display and touch sketches provide the screen output.
 
-### Arduino as an ESP-IDF Component
-
-| Example | Main feature |
-| --- | --- |
-| [03_wifi_arduino](examples/esp-idf/03_wifi_arduino/) | Wi-Fi access point scanning through the onboard coprocessor |
-| [04_bluetooth_arduino](examples/esp-idf/04_bluetooth_arduino/) | BLE scanning through the onboard coprocessor |
-| [16_a2dp_sink_arduino](examples/esp-idf/16_a2dp_sink_arduino/) | Bluetooth A2DP audio receiver |
-
 ## 🛠️ Development Environment
 
 | Framework | Configured version | Examples |
 | --- | --- | ---: |
 | ESP-IDF examples | `v6.1` | 16 |
-| Arduino as an ESP-IDF component | `v6.1`, Arduino `3.3.12` | 3 |
 | ESP-IDF factory application | `v6.1` | 1 |
 | Arduino examples | `3.3.12` | 13 |
 
 The target is `esp32p4`; the framework configuration is maintained in [product.json](.github/product.json).
 
-The ESP-IDF and Arduino-component examples use the shared Board Manager definition under `examples/esp-idf/common/waveshare_boards/`; CMake generates its tables inside each build directory. If `esp-bmgr-assist` is installed, set `ESP_BOARD_MANAGER_SKIP_GEN_CHECK=1` when building so its source-directory precheck does not reject those build-directory tables. Ordinary Arduino sketches use the `board_config`, `board_display`, and `board_audio` libraries under `examples/arduino/libraries/`.
+The ESP-IDF examples use the shared Board Manager definition under `examples/esp-idf/common/waveshare_boards/`; CMake generates its tables inside each build directory. If `esp-bmgr-assist` is installed, set `ESP_BOARD_MANAGER_SKIP_GEN_CHECK=1` when building so its source-directory precheck does not reject those build-directory tables. Ordinary Arduino sketches use the `board_config`, `board_display`, and `board_audio` libraries under `examples/arduino/libraries/`.
 
 <a id="resources"></a>
 

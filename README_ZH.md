@@ -49,8 +49,6 @@
 
 Arduino 开发请安装 **ESP32 by Espressif Systems** `3.3.12`，再打开 `examples/arduino/examples/` 中的草图。开发板选择 **ESP32P4 Dev Module**，并设置 Chip Variant 为 **v3.00 or newer**、Flash Size 为 **32 MB**、PSRAM 为 **Enabled**、Partition Scheme 为 **32M Flash (13MB APP/6.75MB SPIFFS)**。将 `examples/arduino/libraries/` 的内容（包括 `lv_conf.h`）复制到 Arduino sketchbook 的 libraries 目录，或在 Arduino CLI 中使用 `--libraries examples/arduino/libraries`。
 
-`examples/esp-idf/` 下的 Arduino 组件示例将 Arduino 与 ESP-IDF 一同使用，不能在普通 Arduino IDE 中构建。请在所选示例目录运行 `idf.py set-target esp32p4 build flash monitor`。
-
 ## 🧪 示例
 
 ### ESP-IDF
@@ -94,26 +92,17 @@ Arduino 开发请安装 **ESP32 by Espressif Systems** `3.3.12`，再打开 `exa
 
 传感器和控制示例通过 115200 波特率串口监视器输出；显示和触摸草图会在屏幕上显示结果。
 
-### Arduino 作为 ESP-IDF 组件
-
-| 示例 | 主要功能 |
-| --- | --- |
-| [03_wifi_arduino](examples/esp-idf/03_wifi_arduino/README_ZH.md) | 通过板载协处理器扫描 Wi-Fi 热点 |
-| [04_bluetooth_arduino](examples/esp-idf/04_bluetooth_arduino/README_ZH.md) | 通过板载协处理器进行 BLE 扫描 |
-| [16_a2dp_sink_arduino](examples/esp-idf/16_a2dp_sink_arduino/README_ZH.md) | 蓝牙 A2DP 音频接收 |
-
 ## 🛠️ 开发环境
 
 | 开发框架 | 配置版本 | 示例数 |
 | --- | --- | ---: |
 | ESP-IDF 外设示例 | `v6.1` | 16 |
-| Arduino 作为 ESP-IDF 组件 | `v6.1`，Arduino `3.3.12` | 3 |
 | ESP-IDF 出厂应用 | `v6.1` | 1 |
 | Arduino 示例 | `3.3.12` | 13 |
 
 目标芯片为 `esp32p4`，框架配置统一记录在 [product.json](.github/product.json) 中。
 
-ESP-IDF 与 Arduino 组件示例共用 `examples/esp-idf/common/waveshare_boards/` 中的 Board Manager 板定义，CMake 会在各自的构建目录生成配置表。若已安装 `esp-bmgr-assist`，构建时设置 `ESP_BOARD_MANAGER_SKIP_GEN_CHECK=1`，避免其源码目录预检查误判这些构建目录中的配置表。普通 Arduino 草图使用 `examples/arduino/libraries/` 下的 `board_config`、`board_display` 与 `board_audio` 库。
+ESP-IDF 示例共用 `examples/esp-idf/common/waveshare_boards/` 中的 Board Manager 板定义，CMake 会在各自的构建目录生成配置表。若已安装 `esp-bmgr-assist`，构建时设置 `ESP_BOARD_MANAGER_SKIP_GEN_CHECK=1`，避免其源码目录预检查误判这些构建目录中的配置表。普通 Arduino 草图使用 `examples/arduino/libraries/` 下的 `board_config`、`board_display` 与 `board_audio` 库。
 
 <a id="resources"></a>
 
