@@ -12,7 +12,7 @@ Drives the DRV8837 vibration motor for one bounded 400 ms pulse through a serial
 
 ## How to Run
 
-Open `08_motor_drive.ino` in Arduino IDE, select the ESP32-P4 board with 32 MB Flash, PSRAM enabled, and USB CDC on boot, then upload it and open the serial monitor at 115200 baud. Send `v` to start one pulse or `s` to stop it.
+Open `08_motor_drive.ino` in Arduino IDE, use the board settings in the repository README, then upload it and open the UART serial monitor at 115200 baud. Send `v` to start one pulse or `s` to stop it.
 
 ## Expected Result
 

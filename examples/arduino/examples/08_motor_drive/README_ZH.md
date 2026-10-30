@@ -12,7 +12,7 @@
 
 ## 怎么运行
 
-用 Arduino IDE 打开 `08_motor_drive.ino`，选择 ESP32-P4 开发板并设置 32 MB Flash、启用 PSRAM 和启动 USB CDC，上传后以 115200 波特率打开串口监视器。发送 `v` 开始一次振动，或发送 `s` 立即停止。
+用 Arduino IDE 打开 `08_motor_drive.ino`，采用仓库 README 中的开发板设置，上传后以 115200 波特率打开 UART 串口监视器。发送 `v` 开始一次振动，或发送 `s` 立即停止。
 
 ## 预期现象
 
