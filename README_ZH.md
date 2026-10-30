@@ -14,6 +14,7 @@
     <a href="examples/arduino/examples/">🔧 Arduino</a> &middot;
     <a href="#resources">📚 文档</a>
   </p>
+  <p><img src="docs/images/esp32-p4-knob-touch-amoled-1.75.jpg" alt="ESP32-P4-Knob-Touch-AMOLED-1.75 开发板" width="500"></p>
 </div>
 
 ---
