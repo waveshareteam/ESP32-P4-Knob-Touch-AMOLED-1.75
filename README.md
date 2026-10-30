@@ -14,7 +14,10 @@
     <a href="examples/arduino/examples/">🔧 Arduino</a> &middot;
     <a href="#resources">📚 Documentation</a>
   </p>
-  <p><img src="docs/images/esp32-p4-knob-touch-amoled-1.75.jpg" alt="ESP32-P4-Knob-Touch-AMOLED-1.75 development board" width="500"></p>
+  <p>
+    <img src="docs/images/esp32-p4-knob-touch-amoled-1.75.jpg" alt="ESP32-P4-Knob-Touch-AMOLED-1.75 black development board" width="500">
+    <img src="docs/images/esp32-p4-knob-touch-amoled-1.75-silver.jpg" alt="ESP32-P4-Knob-Touch-AMOLED-1.75 silver development board" width="500">
+  </p>
 </div>
 
 ---
