@@ -40,7 +40,14 @@
     "ci_routing": {
       "esp_idf_shared_patterns": [
         "examples/esp-idf/common/knob_board/**",
-        "examples/esp-idf/common/knob_wireless/**"
+        "examples/esp-idf/common/knob_wireless/**",
+        "examples/esp-idf/03_wifi/main/**",
+        "examples/esp-idf/03_wifi/sdkconfig.defaults",
+        "examples/esp-idf/04_bluetooth/main/**",
+        "examples/esp-idf/04_bluetooth/sdkconfig.defaults",
+        "examples/esp-idf/16_a2dp_sink/main/**",
+        "examples/esp-idf/16_a2dp_sink/sdkconfig.defaults",
+        "examples/esp-idf/16_a2dp_sink/partitions.csv"
       ],
       "global_build_patterns": [
         "examples/esp-idf/common/waveshare_boards/**"
