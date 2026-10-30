@@ -1,0 +1,9 @@
+Bluetooth Bluedroid and SBC source notices
+
+Copyright (C) 2004-2012 Broadcom Corporation
+
+Copyright (C) 2014 The Android Open Source Project
+Copyright 2006 Open Interface North America, Inc. All rights reserved.
+
+The corresponding Bluedroid and SBC source components are licensed under the
+Apache License, Version 2.0. See bluedroid-Apache-2.0-LICENSE.txt.
