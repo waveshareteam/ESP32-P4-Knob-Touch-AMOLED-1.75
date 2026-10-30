@@ -38,6 +38,8 @@ constexpr uint8_t kTouchAddress = 0x5A;
 constexpr size_t kFrameLimit = 300 * 1024;
 constexpr size_t kMcuSize = 16;
 constexpr size_t kCanvasBytes = kWidth * kHeight * sizeof(uint16_t);
+constexpr size_t kPpaAlignment = 64;
+constexpr size_t kCanvasBufferSize = (kCanvasBytes + kPpaAlignment - 1) & ~(kPpaAlignment - 1);
 constexpr size_t kUsbChunkBytes = 512;
 constexpr uint8_t kUsbHsPort = 1;
 constexpr uint8_t kTouchPoints = 5;
@@ -78,6 +80,7 @@ jpeg_decoder_handle_t s_jpeg = nullptr;
 ppa_client_handle_t s_ppa = nullptr;
 uint8_t *s_frame = nullptr;
 uint8_t *s_jpegOutput = nullptr;
+uint8_t *s_canvasBuffer = nullptr;
 uint16_t *s_frameBuffer = nullptr;
 SemaphoreHandle_t s_frameReady = nullptr;
 SemaphoreHandle_t s_frameAvailable = nullptr;
@@ -214,7 +217,7 @@ esp_err_t renderFrame()
     const ppa_srm_oper_config_t copy = {
         .in = {.buffer = s_jpegOutput, .pic_w = decodedWidth, .pic_h = decodedHeight,
                .block_w = s_frameWidth, .block_h = s_frameHeight, .srm_cm = PPA_SRM_COLOR_MODE_RGB565},
-        .out = {.buffer = s_frameBuffer, .buffer_size = kCanvasBytes, .pic_w = kWidth, .pic_h = kHeight,
+        .out = {.buffer = s_canvasBuffer, .buffer_size = kCanvasBufferSize, .pic_w = kWidth, .pic_h = kHeight,
                 .block_offset_x = s_frameX, .block_offset_y = s_frameY, .srm_cm = PPA_SRM_COLOR_MODE_RGB565},
         .rotation_angle = PPA_SRM_ROTATION_ANGLE_0,
         .scale_x = 1.0f,
@@ -223,13 +226,13 @@ esp_err_t renderFrame()
     };
     result = ppa_do_scale_rotate_mirror(s_ppa, &copy);
     if (result == ESP_OK) {
-        result = esp_cache_msync(s_frameBuffer, kCanvasBytes,
-                                 ESP_CACHE_MSYNC_FLAG_DIR_M2C | ESP_CACHE_MSYNC_FLAG_UNALIGNED);
+        result = esp_cache_msync(s_canvasBuffer, kCanvasBufferSize,
+                                 ESP_CACHE_MSYNC_FLAG_DIR_M2C | ESP_CACHE_MSYNC_FLAG_TYPE_DATA);
     }
     if (result == ESP_OK) {
-        result = esp_lcd_panel_draw_bitmap(s_display.rawPanel(), s_frameX, s_frameY,
-                                           s_frameX + s_frameWidth, s_frameY + s_frameHeight,
-                                           s_frameBuffer);
+        // The PPA requires a cache-line-sized output buffer. Present the
+        // complete persistent canvas so partial JPEGs retain earlier pixels.
+        result = esp_lcd_panel_draw_bitmap(s_display.rawPanel(), 0, 0, kWidth, kHeight, s_canvasBuffer);
     }
     return result;
 }
@@ -238,8 +241,11 @@ void frameTask(void *)
 {
     while (true) {
         if (xSemaphoreTake(s_frameReady, portMAX_DELAY) == pdTRUE) {
-            if (renderFrame() != ESP_OK) {
-                Serial.println("JPEG frame dropped.");
+            const esp_err_t result = renderFrame();
+            if (result != ESP_OK) {
+                Serial.printf("JPEG frame dropped: %s\n", esp_err_to_name(result));
+            } else {
+                Serial.printf("JPEG frame presented: %ux%u+%u+%u\n", s_frameWidth, s_frameHeight, s_frameX, s_frameY);
             }
             xSemaphoreGive(s_frameAvailable);
         }
@@ -397,10 +403,13 @@ bool UsbDisplay::begin()
     s_frame = static_cast<uint8_t *>(heap_caps_aligned_alloc(64, kFrameLimit, MALLOC_CAP_SPIRAM | MALLOC_CAP_8BIT));
     s_jpegOutput = static_cast<uint8_t *>(heap_caps_aligned_alloc(64, alignUp(kWidth, kMcuSize) * alignUp(kHeight, kMcuSize) * 2,
                                                                    MALLOC_CAP_SPIRAM | MALLOC_CAP_8BIT));
-    if (!s_frameReady || !s_frameAvailable || !s_touchLock || !s_frame || !s_jpegOutput) {
+    s_canvasBuffer = static_cast<uint8_t *>(heap_caps_aligned_alloc(kPpaAlignment, kCanvasBufferSize,
+                                                                      MALLOC_CAP_SPIRAM | MALLOC_CAP_8BIT));
+    if (!s_frameReady || !s_frameAvailable || !s_touchLock || !s_frame || !s_jpegOutput || !s_canvasBuffer) {
         s_error = "USB display memory allocation failed";
         return false;
     }
+    memset(s_canvasBuffer, 0, kCanvasBufferSize);
     const jpeg_decode_engine_cfg_t jpegConfig = {.intr_priority = 0, .timeout_ms = 100};
     const ppa_client_config_t ppaConfig = {.oper_type = PPA_OPERATION_SRM};
     if (jpeg_new_decoder_engine(&jpegConfig, &s_jpeg) != ESP_OK || ppa_register_client(&ppaConfig, &s_ppa) != ESP_OK) {
