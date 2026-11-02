@@ -1,13 +1,15 @@
 # Generate Board Manager tables at configure time so a standard idf.py build
 # needs no separate board-selection command.
 set(KNOB_BOARD_NAME "esp32_p4_knob_touch_amoled_1_75")
-set(KNOB_BOARD_DIR "${CMAKE_CURRENT_LIST_DIR}/../waveshare_boards/boards/${KNOB_BOARD_NAME}")
 set(KNOB_BOARD_GEN_DIR "${CMAKE_BINARY_DIR}/knob_board/components/gen_bmgr_codes")
 
 set(knob_board_srcs "knob_board.c")
 set(knob_board_includes "include")
 
 if(NOT CMAKE_BUILD_EARLY_EXPANSION)
+    # The board definition comes from the waveshare/waveshare_boards managed component.
+    idf_component_get_property(knob_pack_dir waveshare__waveshare_boards COMPONENT_DIR)
+    set(KNOB_BOARD_DIR "${knob_pack_dir}/boards/${KNOB_BOARD_NAME}")
     idf_component_get_property(knob_bmgr_dir espressif__esp_board_manager COMPONENT_DIR)
     file(GLOB knob_board_inputs CONFIGURE_DEPENDS "${KNOB_BOARD_DIR}/*.yaml" "${KNOB_BOARD_DIR}/*.board")
     set_property(DIRECTORY APPEND PROPERTY CMAKE_CONFIGURE_DEPENDS ${knob_board_inputs})

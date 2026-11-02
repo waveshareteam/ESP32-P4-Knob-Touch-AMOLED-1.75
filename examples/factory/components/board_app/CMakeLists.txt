@@ -2,7 +2,11 @@
 # plain `idf.py build` works without a separate `idf.py bmgr` step. A project
 # that already ran `idf.py bmgr` keeps its own components/gen_bmgr_codes.
 set(BOARD_APP_BOARD_NAME "esp32_p4_knob_touch_amoled_1_75")
-set(BOARD_APP_BOARD_DIR "${CMAKE_CURRENT_LIST_DIR}/../../../esp-idf/common/waveshare_boards/boards/${BOARD_APP_BOARD_NAME}")
+if(NOT CMAKE_BUILD_EARLY_EXPANSION)
+    # The board definition comes from the waveshare/waveshare_boards managed component.
+    idf_component_get_property(board_app_pack_dir waveshare__waveshare_boards COMPONENT_DIR)
+    set(BOARD_APP_BOARD_DIR "${board_app_pack_dir}/boards/${BOARD_APP_BOARD_NAME}")
+endif()
 set(BOARD_APP_GEN_DIR "${CMAKE_BINARY_DIR}/board_app/components/gen_bmgr_codes")
 
 set(board_app_srcs "board_app.c" "board_audio.c")

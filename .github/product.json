@@ -41,9 +41,6 @@
       "esp_idf_shared_patterns": [
         "examples/esp-idf/common/knob_board/**",
         "examples/esp-idf/common/knob_wireless/**"
-      ],
-      "global_build_patterns": [
-        "examples/esp-idf/common/waveshare_boards/**"
       ]
     }
   }

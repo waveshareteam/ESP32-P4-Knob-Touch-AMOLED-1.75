@@ -108,7 +108,7 @@ The sensor and control examples report through the 115200-baud serial monitor. T
 
 The target is `esp32p4`; the framework configuration is maintained in [product.json](.github/product.json).
 
-The ESP-IDF examples use the shared Board Manager definition under `examples/esp-idf/common/waveshare_boards/`; CMake generates its tables inside each build directory. If `esp-bmgr-assist` is installed, set `ESP_BOARD_MANAGER_SKIP_GEN_CHECK=1` when building so its source-directory precheck does not reject those build-directory tables. Ordinary Arduino sketches use the `board_config`, `board_display`, and `board_audio` libraries under `examples/arduino/libraries/`.
+The ESP-IDF examples and the factory application get the Board Manager definition `esp32_p4_knob_touch_amoled_1_75` from the [`waveshare/waveshare_boards`](https://components.espressif.com/components/waveshare/waveshare_boards) component; CMake generates its tables inside each build directory. If `esp-bmgr-assist` is installed, set `ESP_BOARD_MANAGER_SKIP_GEN_CHECK=1` when building so its source-directory precheck does not reject those build-directory tables. Ordinary Arduino sketches use the `board_config`, `board_display`, and `board_audio` libraries under `examples/arduino/libraries/`.
 
 <a id="resources"></a>
 

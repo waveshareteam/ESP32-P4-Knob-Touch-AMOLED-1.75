@@ -108,7 +108,7 @@ Arduino 开发请安装 **ESP32 by Espressif Systems** `3.3.12`，再打开 `exa
 
 目标芯片为 `esp32p4`，框架配置统一记录在 [product.json](.github/product.json) 中。
 
-ESP-IDF 示例共用 `examples/esp-idf/common/waveshare_boards/` 中的 Board Manager 板定义，CMake 会在各自的构建目录生成配置表。若已安装 `esp-bmgr-assist`，构建时设置 `ESP_BOARD_MANAGER_SKIP_GEN_CHECK=1`，避免其源码目录预检查误判这些构建目录中的配置表。普通 Arduino 草图使用 `examples/arduino/libraries/` 下的 `board_config`、`board_display` 与 `board_audio` 库。
+ESP-IDF 示例和出厂程序通过 [`waveshare/waveshare_boards`](https://components.espressif.com/components/waveshare/waveshare_boards) 组件获取 Board Manager 板定义 `esp32_p4_knob_touch_amoled_1_75`，CMake 会在各自的构建目录生成配置表。若已安装 `esp-bmgr-assist`，构建时设置 `ESP_BOARD_MANAGER_SKIP_GEN_CHECK=1`，避免其源码目录预检查误判这些构建目录中的配置表。普通 Arduino 草图使用 `examples/arduino/libraries/` 下的 `board_config`、`board_display` 与 `board_audio` 库。
 
 <a id="resources"></a>
 

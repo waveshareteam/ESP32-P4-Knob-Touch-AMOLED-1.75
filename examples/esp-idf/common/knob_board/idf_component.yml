@@ -7,6 +7,8 @@ dependencies:
   espressif/esp_board_manager:
     version: "0.7.4"
     public: true
+  # Board definition for esp32_p4_knob_touch_amoled_1_75.
+  waveshare/waveshare_boards: "0.1.5"
   espressif/esp_codec_dev:
     version: "2.0.0-beta5"
     public: true

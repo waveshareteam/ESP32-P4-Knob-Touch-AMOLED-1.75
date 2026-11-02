@@ -4,13 +4,9 @@
 # CMakeLists in this exact order for cmake to work correctly
 cmake_minimum_required(VERSION 3.5)
 
-# All projects use the same Board Manager hardware definition.
-set(FACTORY_BOARD_COMPONENT_DIR "${CMAKE_CURRENT_LIST_DIR}/../esp-idf/common/waveshare_boards")
-list(APPEND EXTRA_COMPONENT_DIRS "${FACTORY_BOARD_COMPONENT_DIR}")
-set(SDKCONFIG_DEFAULTS
-    "${FACTORY_BOARD_COMPONENT_DIR}/boards/esp32_p4_knob_touch_amoled_1_75/sdkconfig.defaults.board"
-    "${CMAKE_CURRENT_LIST_DIR}/sdkconfig.defaults"
-)
+# The board definition comes from waveshare/waveshare_boards (see components/board_app).
+# sdkconfig.defaults carries its flash, PSRAM and console settings.
+set(SDKCONFIG_DEFAULTS "${CMAKE_CURRENT_LIST_DIR}/sdkconfig.defaults")
 
 include($ENV{IDF_PATH}/tools/cmake/project.cmake)
 project(esp-brookesia)

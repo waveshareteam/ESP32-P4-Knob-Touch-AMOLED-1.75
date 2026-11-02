@@ -1,3 +1,14 @@
+# Flash, PSRAM and console defaults from the board definition's
+# sdkconfig.defaults.board. ESP-IDF reads SDKCONFIG_DEFAULTS before the component
+# manager downloads that component, so they are repeated here. Each example sets
+# its own bootloader log level or partition table offset.
+CONFIG_ESPTOOLPY_FLASHMODE_QIO=y
+CONFIG_ESPTOOLPY_FLASHSIZE_32MB=y
+CONFIG_SPIRAM=y
+CONFIG_SPIRAM_MODE_HEX=y
+CONFIG_SPIRAM_SPEED_200M=y
+CONFIG_ESP_CONSOLE_UART_DEFAULT=y
+
 # Board Manager support selected by the shared ESP32-P4 knob board definition.
 CONFIG_ESP_BOARD_PERIPH_DSI_SUPPORT=y
 CONFIG_ESP_BOARD_PERIPH_GPIO_SUPPORT=y
