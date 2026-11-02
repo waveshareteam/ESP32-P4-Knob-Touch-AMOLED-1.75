@@ -4,7 +4,7 @@
 
 ## What It Does
 
-Performs Bluetooth Low Energy GAP scanning through the external connectivity component. It summarizes nearby advertisers and does not connect, pair, or discover services.
+Initializes the external connectivity device through Board Manager, then performs Bluetooth Low Energy GAP scanning. It summarizes nearby advertisers and does not connect, pair, or discover services.
 
 ## Hardware Required
 

@@ -1,0 +1,7 @@
+dependencies:
+  idf:
+    version: ">=6.0"
+
+  # The on-board ESP32 wireless co-processor is driven over SDIO without hosted firmware, through
+  # components/esp-extconn: espressif/esp-extconn 0.3.3 with a fix for joining networks on
+  # ESP-IDF v6 (see WIFI_SET_BSSID_BEFORE_AUTH in its src/trans_wifi.c).

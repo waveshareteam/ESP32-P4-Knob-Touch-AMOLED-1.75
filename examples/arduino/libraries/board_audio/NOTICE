@@ -1,0 +1,5 @@
+The ES8389 register initialization and power-transition sequence, and the ES7210
+initialization and capture sequence, in src/KnobBoardAudio.cpp are adapted from
+Espressif esp_codec_dev device/es8389/es8389.c and device/es7210/es7210.c.
+Copyright 2023-2025 Espressif Systems (Shanghai) CO LTD, Apache-2.0. The
+repository root LICENSE contains the Apache License 2.0 text.

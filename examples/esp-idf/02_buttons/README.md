@@ -4,7 +4,7 @@
 
 ## What It Does
 
-Tests the BOOT and PWR buttons as separate active-low inputs. The example only reads the inputs and reports debounced press and release events.
+Tests Board Manager configured BOOT and PWR buttons as separate active-low inputs. The example only reads the inputs and reports debounced press and release events.
 
 ## Hardware Required
 

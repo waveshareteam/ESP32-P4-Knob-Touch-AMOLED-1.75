@@ -4,7 +4,7 @@
 
 ## What It Does
 
-Runs the LVGL benchmark demo on the board AMOLED display with the board BSP and touch/display configuration.
+Runs the LVGL benchmark demo on the Board Manager configured AMOLED display and touch devices.
 
 ## Hardware Required
 

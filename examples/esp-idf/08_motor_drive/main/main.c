@@ -9,13 +9,12 @@
 #include "esp_log.h"
 #include "esp_timer.h"
 #include "lvgl.h"
-#include "bsp/esp32_p4_knob_touch_amoled_1_75.h"
+#include "knob_board.h"
 #include "sdkconfig.h"
 
 static const char *TAG = "08_motor_drive";
-
-#define HAPTIC_IN1_GPIO GPIO_NUM_22
-#define HAPTIC_IN2_GPIO GPIO_NUM_23
+static int s_haptic_in1_gpio = -1;
+static int s_haptic_in2_gpio = -1;
 
 typedef enum {
     MOTOR_CMD_START,
@@ -84,37 +83,21 @@ static void guard_timer_cb(void *arg)
     enqueue_cmd(MOTOR_CMD_TIMEOUT);
 }
 
-static esp_err_t haptic_gpio_output_level(gpio_num_t gpio, int level)
-{
-    gpio_config_t cfg = {
-        .pin_bit_mask = 1ULL << gpio,
-        .mode = GPIO_MODE_OUTPUT,
-        .pull_up_en = GPIO_PULLUP_DISABLE,
-        .pull_down_en = GPIO_PULLDOWN_DISABLE,
-        .intr_type = GPIO_INTR_DISABLE,
-    };
-    esp_err_t ret = gpio_config(&cfg);
-    if (ret != ESP_OK) {
-        return ret;
-    }
-    return gpio_set_level(gpio, level ? 1 : 0);
-}
-
 static esp_err_t force_idle_gpio(void)
 {
-    esp_err_t first = gpio_set_level(HAPTIC_IN1_GPIO, 0);
-    esp_err_t second = gpio_set_level(HAPTIC_IN2_GPIO, 0);
+    esp_err_t first = gpio_set_level(s_haptic_in1_gpio, 0);
+    esp_err_t second = gpio_set_level(s_haptic_in2_gpio, 0);
     return first != ESP_OK ? first : second;
 }
 
 static esp_err_t motor_forward(void)
 {
-    esp_err_t ret = gpio_set_level(HAPTIC_IN2_GPIO, 0);
+    esp_err_t ret = gpio_set_level(s_haptic_in2_gpio, 0);
     if (ret != ESP_OK) {
         (void)force_idle_gpio();
         return ret;
     }
-    ret = gpio_set_level(HAPTIC_IN1_GPIO, 1);
+    ret = gpio_set_level(s_haptic_in1_gpio, 1);
     if (ret != ESP_OK) {
         (void)force_idle_gpio();
     }
@@ -128,9 +111,9 @@ static void motor_task(void *arg)
     int64_t deadline_us = 0;
     char last_error[64] = "-";
 
-    esp_err_t ret = haptic_gpio_output_level(HAPTIC_IN1_GPIO, 0);
+    esp_err_t ret = knob_board_gpio_init(KNOB_BOARD_PERIPH_HAPTIC_IN1, &s_haptic_in1_gpio);
     if (ret == ESP_OK) {
-        ret = haptic_gpio_output_level(HAPTIC_IN2_GPIO, 0);
+        ret = knob_board_gpio_init(KNOB_BOARD_PERIPH_HAPTIC_IN2, &s_haptic_in2_gpio);
     }
     if (ret != ESP_OK) {
         snprintf(last_error, sizeof(last_error), "gpio init: %s", esp_err_to_name(ret));
@@ -139,7 +122,7 @@ static void motor_task(void *arg)
         ESP_LOGE(TAG, "FAULT %s", last_error);
     } else {
         ESP_LOGI(TAG, "DRV8837 ready IN1=GPIO%d IN2=GPIO%d idle=low/low",
-                 HAPTIC_IN1_GPIO, HAPTIC_IN2_GPIO);
+                 s_haptic_in1_gpio, s_haptic_in2_gpio);
     }
     post_ui(state, 0, last_error);
 
@@ -232,7 +215,7 @@ static lv_obj_t *new_label(lv_obj_t *parent, int width)
 static void ui_task(void *arg)
 {
     (void)arg;
-    s_disp = bsp_display_start();
+    s_disp = knob_board_display_start(NULL);
     if (!s_disp) {
         ESP_LOGE(TAG, "LVGL init failed");
         vTaskDelete(NULL);
@@ -241,7 +224,7 @@ static void ui_task(void *arg)
     lv_obj_t *status_label = NULL;
     lv_obj_t *remaining_label = NULL;
     lv_obj_t *error_label = NULL;
-    if (bsp_display_lock(-1)) {
+    if (knob_board_display_lock(-1)) {
         lv_obj_t *scr = lv_screen_active();
         lv_obj_set_style_bg_color(scr, lv_color_hex(0xF7F8FA), 0);
         lv_obj_set_style_pad_all(scr, 18, 0);
@@ -249,12 +232,12 @@ static void ui_task(void *arg)
         lv_obj_set_flex_flow(scr, LV_FLEX_FLOW_COLUMN);
         lv_obj_set_flex_align(scr, LV_FLEX_ALIGN_CENTER, LV_FLEX_ALIGN_CENTER, LV_FLEX_ALIGN_CENTER);
 
-        lv_obj_t *title = new_label(scr, BSP_LCD_H_RES - 36);
+        lv_obj_t *title = new_label(scr, KNOB_BOARD_LCD_H_RES - 36);
         lv_label_set_text(title, "08 Motor Drive");
         lv_obj_set_style_text_align(title, LV_TEXT_ALIGN_CENTER, 0);
-        status_label = new_label(scr, BSP_LCD_H_RES - 36);
-        remaining_label = new_label(scr, BSP_LCD_H_RES - 36);
-        error_label = new_label(scr, BSP_LCD_H_RES - 36);
+        status_label = new_label(scr, KNOB_BOARD_LCD_H_RES - 36);
+        remaining_label = new_label(scr, KNOB_BOARD_LCD_H_RES - 36);
+        error_label = new_label(scr, KNOB_BOARD_LCD_H_RES - 36);
         lv_obj_set_style_text_align(status_label, LV_TEXT_ALIGN_CENTER, 0);
         lv_obj_set_style_text_align(remaining_label, LV_TEXT_ALIGN_CENTER, 0);
         lv_obj_set_style_text_align(error_label, LV_TEXT_ALIGN_CENTER, 0);
@@ -270,17 +253,17 @@ static void ui_task(void *arg)
         lv_label_set_text(status_label, "State: IDLE");
         lv_label_set_text(remaining_label, "Remaining: 0 ms");
         lv_label_set_text(error_label, "Last error: -");
-        bsp_display_unlock();
+        knob_board_display_unlock();
     }
 
     while (1) {
         motor_ui_update_t update;
         if (xQueueReceive(s_ui_queue, &update, pdMS_TO_TICKS(20)) == pdTRUE) {
-            if (bsp_display_lock(-1)) {
+            if (knob_board_display_lock(-1)) {
                 lv_label_set_text_fmt(status_label, "State: %s", state_name(update.state));
                 lv_label_set_text_fmt(remaining_label, "Remaining: %lu ms", (unsigned long)update.remaining_ms);
                 lv_label_set_text_fmt(error_label, "Last error: %s", update.error);
-                bsp_display_unlock();
+                knob_board_display_unlock();
             }
         }
         vTaskDelay(pdMS_TO_TICKS(5));
@@ -289,6 +272,7 @@ static void ui_task(void *arg)
 
 void app_main(void)
 {
+    ESP_ERROR_CHECK(knob_board_prepare());
     s_motor_cmd_queue = xQueueCreate(6, sizeof(motor_cmd_t));
     s_ui_queue = xQueueCreate(1, sizeof(motor_ui_update_t));
     if (!s_motor_cmd_queue || !s_ui_queue) {

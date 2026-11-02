@@ -4,7 +4,7 @@
 
 ## What It Does
 
-Monitors two independent limit-switch inputs and shows their levels and trigger counts on an LVGL page. The default configuration polls the inputs; the project also provides diagnostic modes for input-only and PCNT counting.
+Monitors two independent limit-switch inputs and shows their levels and trigger counts on an LVGL page. The default configuration confirms GPIO levels 2 ms after the final edge; the project also provides polling, input-only, and PCNT diagnostic modes.
 
 ## Hardware Required
 
@@ -24,4 +24,4 @@ Operating either switch updates its independent HIGH/LOW state and count on the 
 
 ## Troubleshooting
 
-The default polling mode can miss pulses shorter than its sampling interval. Select a different diagnostic mode only when its behavior matches the connected hardware.
+The default mode counts a falling edge only after the input remains low for its configured settle time. Polling and PCNT modes are diagnostic alternatives and have different pulse-counting behavior.

@@ -25,14 +25,12 @@
 #include "esp_a2dp_api.h"
 #include "esp_avrc_api.h"
 
-#include "bsp/esp-bsp.h"
+#include "knob_board.h"
+#include "knob_wireless.h"
 
 #include "lvgl.h"
 #include "lv_demos.h"
 #include <font_awesome.h>
-#ifdef CONFIG_ESP_EXT_CONN_ENABLE
-#include "esp_extconn.h"
-#endif
 LV_FONT_DECLARE(font_puhui_20_4);
 LV_FONT_DECLARE(font_awesome_20_4);
 
@@ -64,12 +62,12 @@ void ui_update_title(const char *title)
         return;
     }
 
-    if (!bsp_display_lock(-1)) {
+    if (!knob_board_display_lock(-1)) {
         return;
     }
     lv_label_set_text(title_label, title);
     lv_obj_invalidate(title_label);
-    bsp_display_unlock();
+    knob_board_display_unlock();
 }
 
 void ui_update_lyrics(const char *lyrics)
@@ -79,12 +77,12 @@ void ui_update_lyrics(const char *lyrics)
         return;
     }
 
-    if (!bsp_display_lock(-1)) {
+    if (!knob_board_display_lock(-1)) {
         return;
     }
     lv_label_set_text(lyrics_label, lyrics);
     lv_obj_invalidate(lyrics_label);
-    bsp_display_unlock();
+    knob_board_display_unlock();
 }
 
 /*******************************
@@ -262,10 +260,8 @@ static void bt_av_hdl_stack_evt(uint16_t event, void *p_param)
 
 void app_main(void)
 {
-#ifdef CONFIG_ESP_EXT_CONN_ENABLE
-    esp_extconn_config_t config = ESP_EXTCONN_CONFIG_DEFAULT();
-    esp_extconn_init(&config);
-#endif
+    ESP_ERROR_CHECK(knob_board_prepare());
+    ESP_ERROR_CHECK(knob_wireless_init());
     char bda_str[18] = {0};
     /* initialize NVS 鈥?it is used to store PHY calibration data */
     esp_err_t err = nvs_flash_init();
@@ -276,40 +272,25 @@ void app_main(void)
     }
     ESP_ERROR_CHECK(err);
 
-    // err = bsp_display_new(NULL, &panel_handle, &io_handle);
-    // if (err != ESP_OK || panel_handle == NULL) {
-    //     ESP_LOGE("DISPLAY", "Display init failed: %s", esp_err_to_name(err));
-    //     return;
-    // }
-
-    bsp_display_cfg_t display_cfg = {
-        .lv_adapter_cfg = ESP_LV_ADAPTER_DEFAULT_CONFIG(),
+    knob_board_display_config_t display_cfg = {
+        .adapter_config = ESP_LV_ADAPTER_DEFAULT_CONFIG(),
         .rotation = ESP_LV_ADAPTER_ROTATE_0,
         .tear_avoid_mode = ESP_LV_ADAPTER_TEAR_AVOID_MODE_TRIPLE_PARTIAL,
-        .touch_flags = {
-            .swap_xy = 0,
-            .mirror_x = 1,
-            .mirror_y = 1,
-        },
+        .enable_touch = false,
     };
-    display_cfg.lv_adapter_cfg.task_stack_size = 16 * 1024;
-    display_cfg.lv_adapter_cfg.task_priority = 10;
-    display_cfg.lv_adapter_cfg.task_core_id = 0;
-    display_cfg.lv_adapter_cfg.tick_period_ms = 10;
-    display_cfg.lv_adapter_cfg.task_min_delay_ms = 20;
-    display_cfg.lv_adapter_cfg.task_max_delay_ms = 50;
-    display_cfg.lv_adapter_cfg.stack_in_psram = false;
-    lv_display_t *display = bsp_display_start_with_config(&display_cfg);
+    display_cfg.adapter_config.task_stack_size = 16 * 1024;
+    display_cfg.adapter_config.task_priority = 10;
+    display_cfg.adapter_config.task_core_id = 0;
+    display_cfg.adapter_config.tick_period_ms = 10;
+    display_cfg.adapter_config.task_min_delay_ms = 20;
+    display_cfg.adapter_config.task_max_delay_ms = 50;
+    display_cfg.adapter_config.stack_in_psram = false;
+    lv_display_t *display = knob_board_display_start(&display_cfg);
     if (display == NULL) {
         ESP_LOGE("DISPLAY", "Display init failed");
         return;
     }
-    lv_indev_t *touch_indev = bsp_display_get_input_dev();
-    if (touch_indev != NULL) {
-        ESP_ERROR_CHECK(esp_lv_adapter_unregister_touch(touch_indev));
-    }
-
-    bsp_display_lock(-1);
+    knob_board_display_lock(-1);
     // lv_demo_music();
     // lv_demo_widgets();
     // lv_demo_benchmark();
@@ -335,7 +316,7 @@ void app_main(void)
     lv_obj_set_width(lyrics_label, lv_pct(100));
     lv_obj_set_style_text_align(lyrics_label, LV_TEXT_ALIGN_CENTER, 0);
     lv_obj_align(lyrics_label, LV_ALIGN_CENTER, 0, 0);
-    bsp_display_unlock();
+    knob_board_display_unlock();
 
 #if 0
     /*

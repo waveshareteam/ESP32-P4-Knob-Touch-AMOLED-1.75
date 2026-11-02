@@ -4,15 +4,16 @@
 
 ## What It Does
 
-This project is a reserved placeholder for a future USB display example. The current implementation only writes `RESERVED`, `NOT IMPLEMENTED`, and `UNTESTED` to the log, then waits.
+This example exposes the board as a 466 × 466 JPEG USB display for the Espressif Windows USB-display driver. It also sends the board touch input back to the host as a HID touch screen.
 
 ## Hardware Required
 
 - ESP32-P4-Knob-Touch-AMOLED-1.75 development board
+- A USB-C cable connected to the adapter-board USB 2.0 port and a Windows 10 or Windows 11 PC
 
 ## How to Run
 
-Run this command from this example directory using the ESP-IDF version listed in the repository README:
+Build and flash with the ESP-IDF version listed in the repository README, then connect the board to the PC and install the compatible Espressif USB-display driver.
 
 ```bash
 idf.py set-target esp32p4 build flash monitor
@@ -20,8 +21,8 @@ idf.py set-target esp32p4 build flash monitor
 
 ## Expected Result
 
-The serial monitor reports that the example is reserved and not implemented. It does not initialize a USB role, a USB display protocol, or an external display device.
+The log reports that the board is ready at 466 × 466 and reports USB enumeration after the PC configures it. The PC driver can send JPEG frames for the full screen or changed rectangles and receives touch reports from the board.
 
 ## Troubleshooting
 
-This project has no USB-display test to troubleshoot because USB display support is not implemented.
+This example requires the high-speed USB 2.0 port on the adapter board; it cannot use the USB-to-serial connection. If the PC does not enumerate the display, reconnect the cable with the plug flipped.

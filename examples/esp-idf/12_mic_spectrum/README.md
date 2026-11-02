@@ -4,7 +4,7 @@
 
 ## What It Does
 
-This example captures audio from the ES7210 microphone path and shows a real-time FFT spectrum, RMS level, and peak level on the LVGL display. It keeps the output codec disabled and processes microphone input in a separate task.
+This example captures audio from the Board Manager ES7210 microphone device and shows a real-time FFT spectrum, RMS level, and peak level on the LVGL display. It keeps the output codec disabled and processes microphone input in a separate task.
 
 ## Hardware Required
 

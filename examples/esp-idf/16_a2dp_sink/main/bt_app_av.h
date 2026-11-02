@@ -8,6 +8,8 @@
 #define __BT_APP_AV_H__
 
 #include <stdint.h>
+#include <stddef.h>
+#include "esp_err.h"
 #include "esp_a2dp_api.h"
 #include "esp_avrc_api.h"
 
@@ -57,5 +59,8 @@ void bt_app_rc_ct_cb(esp_avrc_ct_cb_event_t event, esp_avrc_ct_cb_param_t *param
 void bt_app_rc_tg_cb(esp_avrc_tg_cb_event_t event, esp_avrc_tg_cb_param_t *param);
 
 void bt_app_av_init_ext(void);
+
+/** Write prepared PCM to the Board Manager audio DAC. */
+esp_err_t bt_i2s_write_pcm(const void *data, size_t len, size_t *bytes_written);
 
 #endif /* __BT_APP_AV_H__*/

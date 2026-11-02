@@ -12,7 +12,8 @@
 #include "esp_log.h"
 #include "esp_timer.h"
 #include "nvs_flash.h"
-#include "esp_extconn.h"
+#include "knob_board.h"
+#include "knob_wireless.h"
 
 static const char *TAG = "04_bluetooth";
 
@@ -481,10 +482,14 @@ static void gap_cb(esp_gap_ble_cb_event_t event, esp_ble_gap_cb_param_t *param)
 
 void app_main(void)
 {
-    esp_extconn_config_t extconn_cfg = ESP_EXTCONN_CONFIG_DEFAULT();
-    esp_err_t ret = esp_extconn_init(&extconn_cfg);
+    esp_err_t ret = knob_board_prepare();
     if (ret != ESP_OK) {
-        ESP_LOGE(TAG, "extconn init failed: %s", esp_err_to_name(ret));
+        ESP_LOGE(TAG, "Board Manager prepare failed: %s", esp_err_to_name(ret));
+        return;
+    }
+    ret = knob_wireless_init();
+    if (ret != ESP_OK) {
+        ESP_LOGE(TAG, "Board Manager wireless init failed: %s", esp_err_to_name(ret));
         return;
     }
 

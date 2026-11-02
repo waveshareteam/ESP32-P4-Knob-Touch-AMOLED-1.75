@@ -15,7 +15,7 @@
 #include "freertos/task.h"
 #include "esp_log.h"
 #include "bt_app_core.h"
-#include "bsp_board_extra.h"
+#include "bt_app_av.h"
 #include "audio_mono_mix.h"
 #include "freertos/ringbuf.h"
 
@@ -154,7 +154,7 @@ static void bt_i2s_task_handler(void *arg)
                     audio_mono_mix_stereo16le_in_place(data, item_size);
                 }
                 bt_i2s_apply_pcm_volume(data, item_size);
-                bsp_extra_i2s_write(data, item_size, &bytes_written, 1000);
+                bt_i2s_write_pcm(data, item_size, &bytes_written);
                 vRingbufferReturnItem(s_ringbuf_i2s, (void *)data);
             }
         }

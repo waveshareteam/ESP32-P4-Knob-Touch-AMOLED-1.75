@@ -14,9 +14,10 @@
 #include "esp_timer.h"
   
 #include "bt_app_core.h"  
-#include "bt_app_av.h"  
+#include "bt_app_av.h"
+#include "driver/i2s_std.h"
 #include "audio_mono_mix.h"
-#include "bsp_board_extra.h"  
+#include "knob_board.h"
 #include "esp_bt_main.h"  
 #include "esp_bt_device.h"  
 #include "esp_gap_bt_api.h"  
@@ -45,9 +46,7 @@
 static const char *TAG_VOL_BTN = "ROTARY_VOLUME";  
   
 /* 行程开关 GPIO */  
-#define BTN_INC_GPIO          20   /* 顺时针 -> 音量增加 */  
-#define BTN_DEC_GPIO          21   /* 逆时针 -> 音量减小 */  
-#define BUTTON_POLL_INTERVAL_MS 10
+#define BUTTON_SETTLE_US        2000
 #define BUTTON_TASK_STACK_SIZE  3072
 #define BUTTON_TASK_PRIORITY    4
   
@@ -104,7 +103,8 @@ static void volume_apply_timer_cb(void *arg);
 static void volume_notify_timer_cb(void *arg);
 static void volume_timers_init(void);
 static void volume_request(int delta);
-static void button_poll_task(void *arg);
+static void button_task(void *arg);
+static void button_edge_isr(void *arg);
 static void button_init(void);  
   
 /*******************************  
@@ -126,7 +126,22 @@ static bool s_volume_notify_work_pending;
 static uint8_t s_volume_notify_pending_volume;
 static esp_timer_handle_t s_volume_apply_timer;
 static esp_timer_handle_t s_volume_notify_timer;
+typedef struct {
+    gpio_num_t gpio;
+    int delta;
+    uint32_t last_edge_us;
+    bool settling;
+    bool pressed;
+} button_pin_t;
+
+static TaskHandle_t s_button_task;
+static portMUX_TYPE s_button_lock = portMUX_INITIALIZER_UNLOCKED;
+static button_pin_t s_button_pins[] = {
+    {.delta = +VOLUME_STEP},
+    {.delta = -VOLUME_STEP},
+};
 static bool s_codec_ready;  
+static esp_codec_dev_handle_t s_audio_codec;
 static uint32_t s_audio_sample_rate = 44100;
 static i2s_slot_mode_t s_audio_channel_mode = I2S_SLOT_MODE_STEREO;
   
@@ -244,7 +259,7 @@ static void bt_av_notify_evt_handler(uint8_t event_id, esp_avrc_rn_param_t *even
   
 static esp_err_t bt_i2s_driver_install(void)  
 {  
-    esp_err_t ret = bsp_extra_codec_init();
+    esp_err_t ret = knob_board_audio_dac_init(&s_audio_codec);
     if (ret != ESP_OK) {
         ESP_LOGE(BT_AV_TAG, "Codec init failed: %s", esp_err_to_name(ret));
         return ret;
@@ -265,12 +280,12 @@ static esp_err_t bt_i2s_driver_install(void)
 
     bt_i2s_set_pcm_volume(volume);
 
-    ret = bsp_extra_codec_volume_set(CODEC_FIXED_OUTPUT_VOLUME, NULL);
+    ret = knob_board_audio_set_volume(s_audio_codec, CODEC_FIXED_OUTPUT_VOLUME);
     if (ret != ESP_OK) {
         ESP_LOGW(BT_AV_TAG, "Codec fixed volume set failed: %s", esp_err_to_name(ret));
     }
 
-    ret = bsp_extra_codec_mute_set(true);
+    ret = knob_board_audio_set_mute(s_audio_codec, true);
     if (ret != ESP_OK) {
         ESP_LOGW(BT_AV_TAG, "Codec initial mute failed: %s", esp_err_to_name(ret));
     }
@@ -297,7 +312,13 @@ static esp_err_t bt_i2s_apply_audio_cfg(void)
              (s_audio_channel_mode == I2S_SLOT_MODE_MONO) ? "mono" : "stereo");
     ESP_LOGI(BT_AV_TAG, "Stereo output mix mode: %s", downmix_enabled ? audio_mono_mix_mode_name() : "disabled");
     bt_i2s_set_stereo_downmix_enabled(downmix_enabled);
-    return bsp_extra_codec_set_fs(s_audio_sample_rate, 16, s_audio_channel_mode);
+    esp_codec_dev_sample_info_t format = {
+        .sample_rate = s_audio_sample_rate,
+        .channel = s_audio_channel_mode,
+        .bits_per_sample = 16,
+    };
+    (void)knob_board_audio_close(s_audio_codec);
+    return knob_board_audio_open(s_audio_codec, &format);
 }
 
 static void bt_i2s_sync_mute_state(void)
@@ -307,7 +328,7 @@ static void bt_i2s_sync_mute_state(void)
     }
 
     bool mute = (s_audio_state != ESP_A2D_AUDIO_STATE_STARTED);
-    esp_err_t ret = bsp_extra_codec_mute_set(mute);
+    esp_err_t ret = knob_board_audio_set_mute(s_audio_codec, mute);
     if (ret != ESP_OK) {
         ESP_LOGW(BT_AV_TAG, "Codec %s failed: %s", mute ? "mute" : "unmute", esp_err_to_name(ret));
     }
@@ -316,7 +337,7 @@ static void bt_i2s_sync_mute_state(void)
 static void bt_i2s_driver_uninstall(void)  
 {  
     if (s_codec_ready) {
-        ESP_ERROR_CHECK(bsp_extra_codec_dev_stop());  
+        ESP_ERROR_CHECK(knob_board_audio_close(s_audio_codec));
         s_codec_ready = false;
     }
 }  
@@ -858,56 +879,108 @@ static void volume_request(int delta)
     }
 }
 
-static void button_poll_task(void *arg)
+static TickType_t button_confirm_pins(void)
+{
+    uint32_t wait_us = UINT32_MAX;
+    for (size_t i = 0; i < sizeof(s_button_pins) / sizeof(s_button_pins[0]); ++i) {
+        button_pin_t *pin = &s_button_pins[i];
+        taskENTER_CRITICAL(&s_button_lock);
+        const bool settling = pin->settling;
+        const uint32_t now = (uint32_t)esp_timer_get_time();
+        const uint32_t held_us = now - pin->last_edge_us;
+        const bool ready = settling && held_us >= BUTTON_SETTLE_US;
+        bool pressed = false;
+        if (ready) {
+            pin->settling = false;
+            pressed = gpio_get_level(pin->gpio) == 0;
+        }
+        taskEXIT_CRITICAL(&s_button_lock);
+
+        if (settling && !ready) {
+            const uint32_t left = BUTTON_SETTLE_US - held_us;
+            wait_us = left < wait_us ? left : wait_us;
+            continue;
+        }
+        if (!ready) {
+            continue;
+        }
+        if (pressed && !pin->pressed) {
+            volume_request(pin->delta);
+        }
+        pin->pressed = pressed;
+    }
+
+    if (wait_us == UINT32_MAX) {
+        return portMAX_DELAY;
+    }
+    TickType_t ticks = pdMS_TO_TICKS((wait_us + 999) / 1000);
+    return ticks > 0 ? ticks : 1;
+}
+
+static void button_task(void *arg)
 {
     (void)arg;
-    int inc_level = gpio_get_level(BTN_INC_GPIO);
-    int dec_level = gpio_get_level(BTN_DEC_GPIO);
-    TickType_t last_wake = xTaskGetTickCount();
-
+    TickType_t wait = portMAX_DELAY;
     while (true) {
-        int level = gpio_get_level(BTN_INC_GPIO);
-        if (level != inc_level) {
-            if (inc_level == 1 && level == 0) {
-                volume_request(+VOLUME_STEP);
-            }
-            inc_level = level;
-        }
+        ulTaskNotifyTake(pdTRUE, wait);
+        wait = button_confirm_pins();
+    }
+}
 
-        level = gpio_get_level(BTN_DEC_GPIO);
-        if (level != dec_level) {
-            if (dec_level == 1 && level == 0) {
-                volume_request(-VOLUME_STEP);
-            }
-            dec_level = level;
-        }
+static void IRAM_ATTR button_edge_isr(void *arg)
+{
+    button_pin_t *pin = (button_pin_t *)arg;
+    const uint32_t now = (uint32_t)esp_timer_get_time();
+    portENTER_CRITICAL_ISR(&s_button_lock);
+    pin->last_edge_us = now;
+    pin->settling = true;
+    portEXIT_CRITICAL_ISR(&s_button_lock);
 
-        vTaskDelayUntil(&last_wake, pdMS_TO_TICKS(BUTTON_POLL_INTERVAL_MS));
+    BaseType_t higher_priority_task_woken = pdFALSE;
+    vTaskNotifyGiveFromISR(s_button_task, &higher_priority_task_woken);
+    if (higher_priority_task_woken == pdTRUE) {
+        portYIELD_FROM_ISR();
     }
 }
 
 static void button_init(void)
 {
-    const gpio_config_t gpio_cfg = {
-        .pin_bit_mask = (1ULL << BTN_INC_GPIO) | (1ULL << BTN_DEC_GPIO),
-        .mode = GPIO_MODE_INPUT,
-        .pull_up_en = GPIO_PULLUP_ENABLE,
-        .pull_down_en = GPIO_PULLDOWN_DISABLE,
-        .intr_type = GPIO_INTR_DISABLE,
-    };
-    ESP_ERROR_CHECK(gpio_config(&gpio_cfg));
+    int clockwise_gpio;
+    int counterclockwise_gpio;
+    ESP_ERROR_CHECK(knob_board_gpio_init(KNOB_BOARD_PERIPH_KNOB_CW, &clockwise_gpio));
+    ESP_ERROR_CHECK(knob_board_gpio_init(KNOB_BOARD_PERIPH_KNOB_CCW, &counterclockwise_gpio));
+    s_button_pins[0].gpio = (gpio_num_t)clockwise_gpio;
+    s_button_pins[1].gpio = (gpio_num_t)counterclockwise_gpio;
 
-    BaseType_t task_created = xTaskCreate(button_poll_task, "rotary_gpio",
+    for (size_t i = 0; i < sizeof(s_button_pins) / sizeof(s_button_pins[0]); ++i) {
+        s_button_pins[i].pressed = gpio_get_level(s_button_pins[i].gpio) == 0;
+    }
+
+    BaseType_t task_created = xTaskCreate(button_task, "rotary_gpio",
                                           BUTTON_TASK_STACK_SIZE, NULL,
-                                          BUTTON_TASK_PRIORITY, NULL);
+                                          BUTTON_TASK_PRIORITY, &s_button_task);
     if (task_created != pdPASS) {
         ESP_LOGE(TAG_VOL_BTN, "Failed to create rotary GPIO polling task");
         abort();
     }
 
+    for (size_t i = 0; i < sizeof(s_button_pins) / sizeof(s_button_pins[0]); ++i) {
+        esp_err_t ret = gpio_isr_handler_add(s_button_pins[i].gpio, button_edge_isr, &s_button_pins[i]);
+        if (ret == ESP_ERR_INVALID_STATE) {
+            ESP_ERROR_CHECK(gpio_install_isr_service(0));
+            ret = gpio_isr_handler_add(s_button_pins[i].gpio, button_edge_isr, &s_button_pins[i]);
+        }
+        ESP_ERROR_CHECK(ret);
+    }
+
     ESP_LOGI(TAG_VOL_BTN,
-             "GPIO%d = Volume +, GPIO%d = Volume -, polling=%d ms, interrupts=off, pullup=on",
-             BTN_INC_GPIO, BTN_DEC_GPIO, BUTTON_POLL_INTERVAL_MS);
+             "GPIO%d = Volume +, GPIO%d = Volume -, any-edge settle=%d us, pullup=on",
+             s_button_pins[0].gpio, s_button_pins[1].gpio, BUTTON_SETTLE_US);
+}
+
+esp_err_t bt_i2s_write_pcm(const void *data, size_t len, size_t *bytes_written)
+{
+    return knob_board_audio_write(s_audio_codec, data, len, bytes_written);
 }
   
 /********************************  

@@ -1,0 +1,7 @@
+description: Shared audio ownership, microSD storage and USB device services for the Brookesia apps
+version: 1.0.0
+targets:
+  - esp32p4
+dependencies:
+  idf: ">=6.0"
+  espressif/tinyusb: "0.21.0~2"

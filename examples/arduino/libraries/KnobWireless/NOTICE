@@ -1,0 +1,51 @@
+KnobWireless 1.0.0
+
+This library intentionally distributes src/esp32p4/libKnobWireless.a as a
+runtime dependency. Its source versions are ESP-IDF v5.5.5 (Wi-Fi and
+Bluetooth Bluedroid) and esp-extconn 0.3.3; its maintainable build basis is
+ESP32-P4 postv3 with a 1000 Hz FreeRTOS tick configuration. It is used with
+the unmodified Arduino-ESP32 3.3.12 core and does not replace the core SDK or
+its sdkconfig.
+
+The archive contains ESP-IDF Wi-Fi host support, esp-extconn, and the
+Bluetooth Bluedroid host with BLE and A2DP/SBC support. The reviewable facade
+ABI sources are retained at src/backend/facade.c and src/backend/bt_facade.c.
+library.properties uses precompiled=full, so Arduino uses the matching archive
+instead of compiling those sources against a different SDK.
+
+Third-party notices and license texts are in licenses/:
+- esp_wifi-LICENSE.txt: Espressif ESP-IDF ESP Wi-Fi host support, Apache-2.0.
+- wpa_supplicant-COPYING.txt and wpa_supplicant-README.txt: wpa_supplicant
+  and hostapd copyright and BSD license notice.
+- esp-extconn-LICENSE.txt: esp-extconn 0.3.3, Apache-2.0.
+- bluedroid-Apache-2.0-LICENSE.txt: Bluetooth Bluedroid and SBC source
+  components, Apache-2.0; source copyright notices are in
+  bluedroid-SBC-NOTICE.txt.
+- tinycrypt-microecc-LICENSE.txt: TinyCrypt (Intel 3-clause BSD) and
+  micro-ecc (Kenneth MacKay 2-clause BSD).
+
+Archive build record
+
+The host-library build starts from the complete Arduino-ESP32 3.3.12
+esp32p4-libs/sdkconfig, using ESP-IDF v5.5.5 and esp-extconn 0.3.3 sources.
+It retains the official postv3 CPU/FreeRTOS configuration (400 MHz,
+CONFIG_ESP32P4_REV_MIN_FULL=301, CONFIG_FREERTOS_HZ=1000). In that separate
+library build, ESP-Hosted, Wi-Fi Remote and NimBLE are disabled; host Wi-Fi,
+Bluedroid, Classic Bluetooth, BLE 4.2 scanning, A2DP and AVRCP are enabled.
+This configuration belongs to the archive build, not to the Arduino core.
+
+The esp-extconn transport enables both Wi-Fi and Bluetooth over SDIO slot 1,
+with CLK=18, CMD=19, D0=14, D1=15, D2=16 and D3=17. The coprocessor enable
+pin is 54 (active high), and its boot pin is 6. Matching esp-extconn source
+is retained in examples/factory/components/esp-extconn in this repository.
+
+The archive combines the facade objects with libesp-extconn, libesp_wifi,
+libwpa_supplicant and libbt from that build, plus ESP-IDF v5.5.5 host Wi-Fi
+archives libcore, libespnow, libnet80211, libtarget, libsmartconfig and
+libwapi. For the standard Arduino linker script, Wi-Fi IRAM sections
+(.wifi0iram.*, .wifirxiram.*, .wifislpiram.*, .wifiorslpiram.*,
+.wifislprxiram.* and .wifiextrairam.*) are renamed to .iram0.text, and
+.rodata_wlog_* sections to .rodata. Debug information is stripped while
+retaining link symbols. Rebuilding requires these matching source versions,
+the complete SDK base configuration and both facade sources; changing only
+the public headers does not rebuild the supplied archive.

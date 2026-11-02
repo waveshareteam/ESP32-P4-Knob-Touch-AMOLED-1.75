@@ -9,38 +9,41 @@
       "v6.1"
     ]
   },
+  "arduino": {
+    "core": "3.3.12",
+    "fqbn": "esp32:esp32:esp32p4:ChipVariant=postv3,FlashSize=32M,PartitionScheme=app13M_data7M_32MB,PSRAM=enabled"
+  },
+  "factory_firmware": {
+    "esp_idf": "v6.1"
+  },
   "overrides": {
     "markdown_audit": {
       "classification_rules": [
         {
           "category": "embedded_upstream",
           "patterns": [
-            "examples/esp-idf/15_lvgl_demo_v9/components/esp_lcd_co5300/**",
-            "examples/esp-idf/16_a2dp_sink/components/esp_lcd_co5300/**",
-            "examples/esp-idf/17_brookesia/components/esp_lcd_ota7290b/**",
-            "examples/esp-idf/17_brookesia/components/esp_lcd_co5300/**",
-            "examples/esp-idf/17_brookesia/components/esp_lcd_ili9881c/**",
-            "examples/esp-idf/17_brookesia/components/esp_lcd_dsi/**",
-            "examples/esp-idf/17_brookesia/components/esp_lcd_jd9365/**",
-            "examples/esp-idf/17_brookesia/components/esp_lcd_hx8394/**",
-            "examples/esp-idf/17_brookesia/components/brookesia_core/**",
+            "examples/factory/components/brookesia_core/**",
+            "examples/factory/components/esp-extconn/**",
+            "examples/factory/components/usb_device_uac/**",
             "examples/esp-idf/16_a2dp_sink/tutorial/Example_A2DP_Sink.md"
           ]
         },
         {
-          "category": "first_party_wrapper",
+          "category": "third_party",
           "patterns": [
-            "examples/esp-idf/15_lvgl_demo_v9/components/esp32_p4_knob_touch_amoled_1_75/README*.md",
-            "examples/esp-idf/16_a2dp_sink/components/esp32_p4_knob_touch_amoled_1_75/README*.md",
-            "examples/esp-idf/17_brookesia/components/esp32_p4_platform/README*.md"
+            "examples/factory/components/XiaozhiApp/third_party/xiaozhi_esp32/**",
+            "examples/arduino/libraries/lvgl/**"
           ]
         }
       ]
     },
     "ci_routing": {
       "esp_idf_shared_patterns": [
-        "examples/esp-idf/16_a2dp_sink/components/esp32_p4_knob_touch_amoled_1_75/**",
-        "examples/esp-idf/16_a2dp_sink/components/esp_lcd_co5300/**"
+        "examples/esp-idf/common/knob_board/**",
+        "examples/esp-idf/common/knob_wireless/**"
+      ],
+      "global_build_patterns": [
+        "examples/esp-idf/common/waveshare_boards/**"
       ]
     }
   }

@@ -1,2 +1,4 @@
 dependencies:
-  idf: ">=5.5.4"
+  idf: ">=5.5"
+  espressif/tinyusb: "0.21.0~2"
+  lvgl/lvgl: "9.5.0"

@@ -1,0 +1,7 @@
+version: 0.7.0
+dependencies:
+  brookesia_core:
+    public: true
+  chmorgan/esp-audio-player:
+    version: "1.1.0"
+    public: true
