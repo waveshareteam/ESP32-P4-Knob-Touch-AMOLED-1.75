@@ -11,9 +11,11 @@ on:
         default: all
 jobs:
   build:
-    uses: waveshareteam/esp32-repo-template/.github/workflows/build.yml@v1
+    uses: Y1hsiaochunnn/esp32-repo-template/.github/workflows/build.yml@03c7c1396184bf2c9e456e2b077aa9181ab945c5
     with:
       examples: ${{ inputs.examples || 'all' }}
+      template_repository: Y1hsiaochunnn/esp32-repo-template
+      template_ref: 03c7c1396184bf2c9e456e2b077aa9181ab945c5
     permissions:
       contents: write
     secrets: inherit
