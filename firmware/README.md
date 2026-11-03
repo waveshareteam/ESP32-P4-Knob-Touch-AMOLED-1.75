@@ -7,7 +7,6 @@ Ready-to-flash firmware for the ESP32-P4-Knob-Touch-AMOLED-1.75. Each file is a 
 | File | Purpose |
 | --- | --- |
 | `ESP32-P4-Knob-Touch-AMOLED-1.75_FactoryOnly_20261103.bin` | Brookesia demonstration firmware with knob page turning on the home screen, round-display UI fixes, a fix for Xiaozhi connections with several apps open, and built-in music. |
-| `ESP32-P4-Knob-Touch-AMOLED-1.75_FactoryOnly_20261029.bin` | Brookesia demonstration firmware with rotary volume fixes, an enhanced top volume range, and built-in music. |
 
 Install esptool and replace `PORT` with the board's serial port:
 
