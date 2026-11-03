@@ -60,6 +60,9 @@ CONFIG_LWIP_TCP_RECVMBOX_SIZE=64
 CONFIG_LWIP_UDP_RECVMBOX_SIZE=64
 CONFIG_LWIP_TCPIP_RECVMBOX_SIZE=64
 CONFIG_LWIP_TCP_SACK_OUT=y
+# TLS buffers live in PSRAM: with several apps open, internal RAM runs low enough that
+# Xiaozhi's handshake fails to allocate hardware AES DMA buffers.
+CONFIG_MBEDTLS_EXTERNAL_MEM_ALLOC=y
 
 CONFIG_LV_USE_LOG=y
 CONFIG_LV_LOG_PRINTF=y
