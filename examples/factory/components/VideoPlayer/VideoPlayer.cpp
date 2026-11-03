@@ -19,6 +19,7 @@
 #include "esp_lv_adapter.h"
 #include "esp_timer.h"
 #include "knob_service.h"
+#include "app_fonts.h"
 #include "audio_track.h"
 #ifdef ESP_UTILS_LOG_TAG
 #undef ESP_UTILS_LOG_TAG
@@ -48,6 +49,8 @@ LV_IMG_DECLARE(img_app_vedioplayer);
 /* The first frame waits this long at most for the sound, whose reader may still be indexing */
 #define AUDIO_START_TIMEOUT_MS 5000
 #define DISPLAY_LOCK_WAIT_MS 20
+#define STATUS_ICON_COLOR 0xA066FF
+#define STATUS_HINT_COLOR 0xA0A3B1
 
 #if (BOARD_LCD_BITS_PER_PIXEL == 16)
 #define VIDEO_JPEG_PIXEL_FORMAT JPEG_PIXEL_FORMAT_RGB565_LE
@@ -75,7 +78,7 @@ namespace esp_brookesia::apps
         return _instance;
     }
 
-    VideoPlayer::VideoPlayer(bool use_status_bar, bool use_navigation_bar) : App("VideoPlayer", &img_app_vedioplayer, true, use_status_bar, use_navigation_bar)
+    VideoPlayer::VideoPlayer(bool use_status_bar, bool use_navigation_bar) : App("Video", &img_app_vedioplayer, true, use_status_bar, use_navigation_bar)
     {
         play_task_done = xSemaphoreCreateBinary();
         handoff_done = xSemaphoreCreateBinary();
@@ -92,19 +95,23 @@ namespace esp_brookesia::apps
         ESP_UTILS_LOGD("Run");
         is_paused = false;
         audio_preempted = false;
-        const bool sd_mounted = storage_sd_is_mounted();
+        const storage_sd_state_t sd = storage_sd_get_state();
         board_display_lock(-1);
         lv_obj_set_style_bg_color(lv_scr_act(), lv_color_black(), LV_PART_MAIN);
         lv_obj_set_style_bg_opa(lv_scr_act(), LV_OPA_COVER, LV_PART_MAIN);
-        status_label = lv_label_create(lv_scr_act());
-        lv_label_set_text(status_label, sd_mounted ? "loading files..." : "microSD unavailable");
-        lv_obj_set_style_text_align(status_label, LV_TEXT_ALIGN_CENTER, 0);
-        lv_obj_set_width(status_label, DISPLAY_WIDTH);
-        lv_obj_align(status_label, LV_ALIGN_CENTER, 0, 0);
-        lv_obj_set_style_text_font(status_label, &lv_font_montserrat_20, 0);
+        if (sd == STORAGE_SD_MOUNTED) {
+            showStatus(LV_SYMBOL_VIDEO, "Loading videos", nullptr);
+        } else if (sd == STORAGE_SD_USB) {
+            showStatus(LV_SYMBOL_USB, "Card in use",
+                       "The microSD card is open on a computer. Stop USB access in Settings to play videos.");
+        } else if (sd == STORAGE_SD_NO_CARD) {
+            showStatus(LV_SYMBOL_SD_CARD, "No microSD card", "Insert a card with videos in the videos folder.");
+        } else {
+            showStatus(LV_SYMBOL_WARNING, "Card unreadable", "Format the microSD card as FAT32 or exFAT.");
+        }
         board_display_unlock();
 
-        if (!sd_mounted)
+        if (sd != STORAGE_SD_MOUNTED)
         {
             return true;
         }
@@ -113,14 +120,15 @@ namespace esp_brookesia::apps
         if (files.empty())
         {
             board_display_lock(-1);
-            lv_label_set_text(status_label, "no MP4 or AVI files\nin /videos");
+            showStatus(LV_SYMBOL_VIDEO, "No videos",
+                       "Copy MJPEG videos in MP4 or AVI files to the videos folder on the microSD card.");
             board_display_unlock();
             return true;
         }
 
         board_display_lock(-1);
-        lv_obj_del(status_label);
-        status_label = nullptr;
+        lv_obj_del(status_view);
+        status_view = nullptr;
         board_display_unlock();
 
         exit_timer = lv_timer_create(exitTimerCb, 100, this);
@@ -131,6 +139,43 @@ namespace esp_brookesia::apps
         }
         knob_service_attach(knobCallback, this);
         return true;
+    }
+
+    void VideoPlayer::showStatus(const char *icon, const char *title, const char *hint)
+    {
+        // Laid out like the empty states of Gallery and Reader
+        if (!status_view)
+        {
+            status_view = lv_obj_create(lv_scr_act());
+            lv_obj_remove_style_all(status_view);
+            lv_obj_remove_flag(status_view, LV_OBJ_FLAG_SCROLLABLE | LV_OBJ_FLAG_CLICKABLE);
+            lv_obj_set_size(status_view, 320, LV_SIZE_CONTENT);
+            lv_obj_set_flex_flow(status_view, LV_FLEX_FLOW_COLUMN);
+            lv_obj_set_flex_align(status_view, LV_FLEX_ALIGN_CENTER, LV_FLEX_ALIGN_CENTER, LV_FLEX_ALIGN_CENTER);
+            lv_obj_set_style_pad_row(status_view, 10, LV_PART_MAIN);
+            lv_obj_center(status_view);
+            lv_obj_t *icon_label = lv_label_create(status_view);
+            lv_obj_set_style_text_font(icon_label, &lv_font_montserrat_44, LV_PART_MAIN);
+            lv_obj_set_style_text_color(icon_label, lv_color_hex(STATUS_ICON_COLOR), LV_PART_MAIN);
+            lv_obj_t *title_label = lv_label_create(status_view);
+            lv_obj_set_style_text_font(title_label, &lv_font_montserrat_22, LV_PART_MAIN);
+            lv_obj_set_style_text_color(title_label, lv_color_white(), LV_PART_MAIN);
+            lv_obj_t *hint_label = lv_label_create(status_view);
+            lv_obj_set_width(hint_label, 300);
+            lv_label_set_long_mode(hint_label, LV_LABEL_LONG_MODE_WRAP);
+            lv_obj_set_style_text_align(hint_label, LV_TEXT_ALIGN_CENTER, LV_PART_MAIN);
+            lv_obj_set_style_text_font(hint_label, app_font_text_20(), LV_PART_MAIN);
+            lv_obj_set_style_text_color(hint_label, lv_color_hex(STATUS_HINT_COLOR), LV_PART_MAIN);
+        }
+        lv_label_set_text(lv_obj_get_child(status_view, 0), icon);
+        lv_label_set_text(lv_obj_get_child(status_view, 1), title);
+        lv_obj_t *hint_label = lv_obj_get_child(status_view, 2);
+        lv_label_set_text(hint_label, hint ? hint : "");
+        if (hint && hint[0]) {
+            lv_obj_remove_flag(hint_label, LV_OBJ_FLAG_HIDDEN);
+        } else {
+            lv_obj_add_flag(hint_label, LV_OBJ_FLAG_HIDDEN);
+        }
     }
 
     bool VideoPlayer::back(void)
@@ -157,10 +202,10 @@ namespace esp_brookesia::apps
         }
 
         board_display_lock(-1);
-        if (status_label)
+        if (status_view)
         {
-            lv_obj_del(status_label);
-            status_label = nullptr;
+            lv_obj_del(status_view);
+            status_view = nullptr;
         }
         board_display_unlock();
 

@@ -43,12 +43,29 @@
 #include "UsbScreen.hpp"
 #include "esp_brookesia_app_calculator.hpp"
 #include "esp_heap_caps.h"
+#include <algorithm>
 
 using namespace esp_brookesia;
 using namespace esp_brookesia::gui;
 using namespace esp_brookesia::systems::phone;
 
 constexpr bool EXAMPLE_SHOW_MEM_INFO = true;
+
+/* Turns home screen pages. Apps that use the knob attach above this listener while in front. */
+static void launcher_knob_cb(int steps, void *user_ctx)
+{
+    Phone *phone = static_cast<Phone *>(user_ctx);
+    auto &display = phone->getDisplay();
+    AppLauncher *launcher = display.getAppLauncher();
+    RecentsScreen *recents = display.getRecentsScreen();
+    // An app that ignores the knob, or the recents screen, may be in front of the launcher
+    if ((lv_screen_active() != display.getMainScreen()) || !launcher->checkVisible() ||
+            ((recents != nullptr) && recents->checkVisible())) {
+        return;
+    }
+    const int last_page = launcher->getPageNum() - 1;
+    launcher->scrollToPage(std::clamp(launcher->getActiveScreenIndex() + steps, 0, last_page));
+}
 
 extern "C" void app_main(void)
 {
@@ -186,6 +203,8 @@ extern "C" void app_main(void)
         auto app6 = esp_brookesia::apps::Settings::requestInstance();
         ESP_UTILS_CHECK_FALSE_EXIT(phone->installApp(app6), "Start Settings failed");
 
+        ESP_ERROR_CHECK(knob_service_attach(launcher_knob_cb, phone));
+
         board_display_backlight_on();
 
         /* Create a timer to update the clock */
@@ -257,15 +276,6 @@ extern "C" void app_main(void)
                     heap_caps_get_largest_free_block(MALLOC_CAP_SPIRAM), external_free, external_total
                 );
                 ESP_UTILS_LOGI("\n%s", buffer);
-
-                {
-                    LvLockGuard gui_guard;
-                    ESP_UTILS_CHECK_FALSE_EXIT(
-                        phone->getDisplay().getRecentsScreen()->setMemoryLabel(
-                            internal_free / 1024, internal_total / 1024, external_free / 1024, external_total / 1024
-                        ), "Set memory label failed"
-                    );
-                }
 
                 boost::this_thread::sleep_for(boost::chrono::seconds(5));
             }

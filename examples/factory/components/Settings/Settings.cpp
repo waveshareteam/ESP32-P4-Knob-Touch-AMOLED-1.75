@@ -219,7 +219,11 @@ namespace esp_brookesia::apps
         {
             return;
         }
+        // A tap moves the knob focus too, so the outline must not stay on the old row
+        const bool outlined = lv_obj_get_style_border_width(_items[_focus], LV_PART_MAIN) > 0;
+        lv_obj_set_style_border_width(_items[_focus], 0, LV_PART_MAIN);
         _focus = index;
+        lv_obj_set_style_border_width(_items[_focus], outlined ? 2 : 0, LV_PART_MAIN);
         lv_obj_add_flag(_list_root, LV_OBJ_FLAG_HIDDEN);
         _page_root = round_ui::create_plain(lv_scr_act());
         lv_obj_set_size(_page_root, round_ui::SCREEN, round_ui::SCREEN);

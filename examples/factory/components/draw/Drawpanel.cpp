@@ -12,7 +12,7 @@
 #include "esp_lib_utils.h"
 #include "Drawpanel.hpp"
 
-#define APP_NAME "DrawPanel"
+#define APP_NAME "Draw"
 
 using namespace std;
 using namespace esp_brookesia::gui;

@@ -24,7 +24,7 @@
 #include "music_audio.h"
 #include "MusicPlayer.hpp"
 
-#define APP_NAME "MusicPlayer"
+#define APP_NAME "Music"
 #define FLASH_MUSIC_DIR BOARD_SPIFFS_MOUNT_POINT "/music"
 
 LV_IMG_DECLARE(img_app_musicplayer);

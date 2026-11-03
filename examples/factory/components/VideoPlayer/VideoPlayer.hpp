@@ -113,7 +113,9 @@ namespace esp_brookesia::apps
         int64_t clock_media_ms = 0;
         int64_t clock_stamp_us = 0;
 
-        lv_obj_t *status_label = nullptr;
+        lv_obj_t *status_view = nullptr;    // Icon, title and hint shown instead of a video
+
+        void showStatus(const char *icon, const char *title, const char *hint);
 
         void scanFiles(const char *dir_path);
         bool startPlayback();

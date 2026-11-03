@@ -118,8 +118,11 @@ bool RecentsScreen::begin(lv_obj_t *parent)
 
     // Update
     ESP_UTILS_CHECK_FALSE_GOTO(updateByNewData(), err, "Update failed");
-    lv_label_set_text_fmt(_memory_label.get(), MEMORY_LABEL_TEXT_FORMAT, 0, 0, _data.memory.label_unit_text,
-                          0, 0, _data.memory.label_unit_text);
+    // The label exists only when the stylesheet enables it
+    if (_memory_label != nullptr) {
+        lv_label_set_text_fmt(_memory_label.get(), MEMORY_LABEL_TEXT_FORMAT, 0, 0, _data.memory.label_unit_text,
+                              0, 0, _data.memory.label_unit_text);
+    }
 
     return true;
 
