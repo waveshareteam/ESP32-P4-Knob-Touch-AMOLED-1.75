@@ -78,7 +78,7 @@ namespace esp_brookesia::apps
         return _instance;
     }
 
-    VideoPlayer::VideoPlayer(bool use_status_bar, bool use_navigation_bar) : App("VideoPlayer", &img_app_vedioplayer, true, use_status_bar, use_navigation_bar)
+    VideoPlayer::VideoPlayer(bool use_status_bar, bool use_navigation_bar) : App("Video", &img_app_vedioplayer, true, use_status_bar, use_navigation_bar)
     {
         play_task_done = xSemaphoreCreateBinary();
         handoff_done = xSemaphoreCreateBinary();

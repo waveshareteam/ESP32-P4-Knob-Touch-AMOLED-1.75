@@ -12,7 +12,7 @@
 #include "knob_service.h"
 #include <algorithm>
 #include <cmath>
-#define APP_NAME "SpecAnalyzer"
+#define APP_NAME "Spectrum"
 
 using namespace std;
 using namespace esp_brookesia::gui;
