@@ -297,12 +297,7 @@ bool XiaozhiApp::back()
     if (_activation_client) {
         _activation_client->cancel();
     }
-    ControlEvent event = {};
-    event.type = ControlEventType::AppHidden;
-    event.flag = true;
-    if (!postControlEvent(event, true)) {
-        return false;
-    }
+    postAppHidden();
     return notifyCoreClosed();
 }
 
@@ -316,14 +311,23 @@ bool XiaozhiApp::close()
     if (_activation_client) {
         _activation_client->cancel();
     }
+    postAppHidden();
+    destroyUi();
+    return true;
+}
+
+/*
+ * The control task may be inside a blocking network request (service information or the
+ * activation long poll) for several seconds. Waiting for it on the UI task froze the screen
+ * and failed the navigation, so the hidden state is only queued: the control task stops
+ * preparing as soon as it sees _visible cleared, then releases the audio.
+ */
+void XiaozhiApp::postAppHidden()
+{
     ControlEvent event = {};
     event.type = ControlEventType::AppHidden;
     event.flag = true;
-    if (!postControlEvent(event, true)) {
-        return false;
-    }
-    destroyUi();
-    return true;
+    (void)postControlEvent(event);
 }
 
 bool XiaozhiApp::init()
@@ -600,12 +604,7 @@ bool XiaozhiApp::pause()
     if (_activation_client) {
         _activation_client->cancel();
     }
-    ControlEvent event = {};
-    event.type = ControlEventType::AppHidden;
-    event.flag = true;
-    if (!postControlEvent(event, true)) {
-        return false;
-    }
+    postAppHidden();
     if (_ui_timer) {
         lv_timer_pause(_ui_timer);
     }
@@ -1372,7 +1371,10 @@ void XiaozhiApp::handleControlEvent(const ControlEvent &event)
 
 void XiaozhiApp::handleAppVisible()
 {
-    _visible.store(true);
+    // run() and resume() set _visible; hidden again since, a later AppHidden is queued
+    if (!_visible.load()) {
+        return;
+    }
     if (!_network_ready.load() || !isNetworkReady()) {
         setState(State::NetworkRequired);
     } else if (_activation_phase == ActivationPhase::WaitingForBinding ||
@@ -1404,7 +1406,8 @@ void XiaozhiApp::handleAppVisible()
 
 void XiaozhiApp::handleAppHidden(bool release_audio)
 {
-    _visible.store(false);
+    // pause(), back() and close() cleared _visible; shown again since, the queued AppVisible
+    // prepares Xiaozhi again
     stopActivationPrompt();
     setAudioModes(false, false);
     if (release_audio) {
