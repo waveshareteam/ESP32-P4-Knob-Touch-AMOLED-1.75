@@ -11,16 +11,16 @@
 namespace esp_brookesia::systems::phone {
 
 constexpr RecentsScreenSnapshot::Data STYLESHEET_466_466_DARK_RECENTS_SCREEN_SNAPSHOT_DATA = {
-    .main_size = gui::StyleSize::RECT(300, 352),
+    .main_size = gui::StyleSize::RECT(280, 324),
     .title = {
-        .main_size = gui::StyleSize::RECT(300, 52),
+        .main_size = gui::StyleSize::RECT(280, 44),
         .main_layout_column_pad = 10,
-        .icon_size = gui::StyleSize::SQUARE(36),
+        .icon_size = gui::StyleSize::SQUARE(32),
         .text_font = gui::StyleFont::SIZE(22),
         .text_color = gui::StyleColor::COLOR(0xFFFFFF),
     },
     .image = {
-        .main_size = gui::StyleSize::RECT(300, 300),
+        .main_size = gui::StyleSize::RECT(280, 280),
         .radius = 20,
     },
 };
@@ -28,9 +28,10 @@ constexpr RecentsScreenSnapshot::Data STYLESHEET_466_466_DARK_RECENTS_SCREEN_SNA
 constexpr RecentsScreen::Data STYLESHEET_466_466_DARK_RECENTS_SCREEN_DATA = {
     .main = {
         .size = gui::StyleSize::RECT_PERCENT(100, 100),
-        // The flex table reserves four row gaps; 6 px leaves 354 px for the 352 px snapshot.
+        // The table height still subtracts the 20 px memory row and four row gaps; with this top
+        // padding it is 324 px, the snapshot height, and the snapshot title stays inside the circle.
         .layout_row_pad = 6,
-        .layout_top_pad = 0,
+        .layout_top_pad = 30,
         .layout_bottom_pad = 20,
         .background_color = gui::StyleColor::COLOR(0x1A1A1A),
     },
@@ -52,7 +53,7 @@ constexpr RecentsScreen::Data STYLESHEET_466_466_DARK_RECENTS_SCREEN_DATA = {
         .image = gui::StyleImage::IMAGE(&esp_brookesia_image_middle_recents_screen_trash_48_48),
     },
     .flags = {
-        .enable_memory = 1,
+        .enable_memory = 0,    // Its line is wider than the top of the circle
         .enable_table_height_flex = 1,
         .enable_table_snapshot_use_icon_image = 0,
     },

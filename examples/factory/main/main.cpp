@@ -258,15 +258,6 @@ extern "C" void app_main(void)
                 );
                 ESP_UTILS_LOGI("\n%s", buffer);
 
-                {
-                    LvLockGuard gui_guard;
-                    ESP_UTILS_CHECK_FALSE_EXIT(
-                        phone->getDisplay().getRecentsScreen()->setMemoryLabel(
-                            internal_free / 1024, internal_total / 1024, external_free / 1024, external_total / 1024
-                        ), "Set memory label failed"
-                    );
-                }
-
                 boost::this_thread::sleep_for(boost::chrono::seconds(5));
             }
         }).detach();
