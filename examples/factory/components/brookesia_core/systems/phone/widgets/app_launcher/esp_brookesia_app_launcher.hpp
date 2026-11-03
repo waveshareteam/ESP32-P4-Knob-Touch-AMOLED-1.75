@@ -61,6 +61,10 @@ public:
     {
         return _table_current_page_index;
     }
+    uint8_t getPageNum(void) const
+    {
+        return _mix_objs.size();
+    }
 
     static bool calibrateData(const gui::StyleSize &screen_size, const base::Display &display, AppLauncherData &data);
 

@@ -43,12 +43,29 @@
 #include "UsbScreen.hpp"
 #include "esp_brookesia_app_calculator.hpp"
 #include "esp_heap_caps.h"
+#include <algorithm>
 
 using namespace esp_brookesia;
 using namespace esp_brookesia::gui;
 using namespace esp_brookesia::systems::phone;
 
 constexpr bool EXAMPLE_SHOW_MEM_INFO = true;
+
+/* Turns home screen pages. Apps that use the knob attach above this listener while in front. */
+static void launcher_knob_cb(int steps, void *user_ctx)
+{
+    Phone *phone = static_cast<Phone *>(user_ctx);
+    auto &display = phone->getDisplay();
+    AppLauncher *launcher = display.getAppLauncher();
+    RecentsScreen *recents = display.getRecentsScreen();
+    // An app that ignores the knob, or the recents screen, may be in front of the launcher
+    if ((lv_screen_active() != display.getMainScreen()) || !launcher->checkVisible() ||
+            ((recents != nullptr) && recents->checkVisible())) {
+        return;
+    }
+    const int last_page = launcher->getPageNum() - 1;
+    launcher->scrollToPage(std::clamp(launcher->getActiveScreenIndex() + steps, 0, last_page));
+}
 
 extern "C" void app_main(void)
 {
@@ -185,6 +202,8 @@ extern "C" void app_main(void)
         ESP_UTILS_CHECK_FALSE_EXIT(phone->installApp(usb_screen_app), "Start USB Screen failed");
         auto app6 = esp_brookesia::apps::Settings::requestInstance();
         ESP_UTILS_CHECK_FALSE_EXIT(phone->installApp(app6), "Start Settings failed");
+
+        ESP_ERROR_CHECK(knob_service_attach(launcher_knob_cb, phone));
 
         board_display_backlight_on();
 
