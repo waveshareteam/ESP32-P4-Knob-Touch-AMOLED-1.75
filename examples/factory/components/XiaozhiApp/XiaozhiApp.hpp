@@ -256,6 +256,7 @@ private:
     void handleControlEvent(const ControlEvent &event);
     void handleAppVisible();
     void handleAppHidden(bool release_audio);
+    void postAppHidden();
     void prepareIfDue();
     void schedulePrepare(uint32_t delay_ms);
     bool prepareChat();
