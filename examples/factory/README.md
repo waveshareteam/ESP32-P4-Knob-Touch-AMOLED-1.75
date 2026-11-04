@@ -30,7 +30,7 @@ Use the factory ESP-IDF version listed in the [repository README](../../README.m
 idf.py set-target esp32p4 build flash monitor
 ```
 
-For built-in music in a local firmware, place your own or licensed MP3s in `spiffs/music/`; these Git-ignored assets are not included in CI firmware images.
+The MP3 files in `spiffs/music/` and the Xiaozhi prompt audio in `spiffs/xiaozhi/` are included in the SPIFFS image for both local and CI builds.
 
 ## Expected Result
 

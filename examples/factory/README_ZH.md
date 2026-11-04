@@ -30,7 +30,7 @@
 idf.py set-target esp32p4 build flash monitor
 ```
 
-如需在本地固件中预装音乐，请将自有或已获授权的 MP3 放到 `spiffs/music/`；这些文件被 Git 忽略，不包含在 CI 固件中。
+`spiffs/music/` 中的 MP3 和 `spiffs/xiaozhi/` 中的小智提示音会一起打包到 SPIFFS 镜像，本地与 CI 构建均包含这些素材。
 
 ## 预期现象
 
